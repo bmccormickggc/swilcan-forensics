@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Swilcan Forensics | Forensic Nursing Expert Witness</title>
+  <meta name="description" content="Objective, evidence-based forensic nursing expertise for medical record review, case consultation, written opinions, testimony, education, and consulting." />
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=Lora:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:      #111111;
+      --slate:     #343434;
+      --gold:      #111111;
+      --gold-lt:   #343434;
+      --ivory:     #F5F5F2;
+      --text:      #111111;
+      --text-mid:  #3F3F3F;
+      --text-muted:#666666;
+      --divider:   #DDDDD8;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background: #fff;
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    /* ── NAV ─────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--divider);
+      height: 66px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 3rem;
+    }
+
+    .nav-logo {
+      display: flex; align-items: center; gap: 0.75rem;
+      text-decoration: none;
+    }
+
+    .nav-logo-image {
+      display: block;
+      width: auto;
+      height: 54px;
+    }
+
+    .nav-logo-mark svg { display: block; }
+
+    .nav-logo-text {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: var(--navy);
+      letter-spacing: 0.04em;
+      line-height: 1.2;
+    }
+
+    .nav-logo-text span {
+      display: block;
+      font-size: 0.65rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-top: 1px;
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a,
+    .nav-dropdown-trigger {
+      text-decoration: none;
+      font-size: 0.8rem; font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover,
+    .nav-dropdown-trigger:hover { color: var(--navy); }
+
+    .nav-item-dropdown { position: relative; }
+
+    .nav-dropdown-trigger {
+      display: flex; align-items: center; gap: 0.35rem;
+      border: 0; background: transparent;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer; padding: 0;
+    }
+
+    .nav-dropdown-trigger svg {
+      width: 12px; height: 12px;
+      transition: transform 0.2s;
+    }
+
+    .nav-dropdown {
+      position: absolute;
+      top: calc(100% + 1rem);
+      left: -1.25rem;
+      min-width: 230px;
+      padding: 0.55rem;
+      background: #fff;
+      border: 1px solid var(--divider);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+      list-style: none;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-6px);
+      transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+    }
+
+    .nav-dropdown a {
+      display: block;
+      padding: 0.7rem 0.8rem;
+      font-size: 0.72rem;
+      line-height: 1.35;
+    }
+
+    .nav-dropdown a:hover { background: var(--ivory); }
+
+    .nav-item-dropdown:hover .nav-dropdown,
+    .nav-item-dropdown:focus-within .nav-dropdown,
+    .nav-item-dropdown.open .nav-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .nav-item-dropdown.open .nav-dropdown-trigger svg {
+      transform: rotate(180deg);
+    }
+
+    .nav-toggle {
+      display: none;
+      width: 42px; height: 42px;
+      align-items: center; justify-content: center;
+      border: 1px solid var(--divider);
+      background: #fff;
+      color: var(--navy);
+      cursor: pointer;
+    }
+
+    .nav-toggle svg { width: 20px; height: 20px; }
+
+    .nav-cta {
+      font-size: 0.78rem !important;
+      font-weight: 600 !important;
+      color: var(--gold) !important;
+      border: 1.5px solid var(--gold);
+      padding: 0.45rem 1.1rem;
+      border-radius: 2px;
+      transition: background 0.2s, color 0.2s !important;
+    }
+
+    .nav-cta:hover {
+      background: var(--gold) !important;
+      color: #fff !important;
+    }
+
+    /* ── HERO ────────────────────────────────────── */
+    .hero {
+      min-height: auto;
+      background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      padding: 10rem 3rem 5.5rem;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .hero-texture {
+      position: absolute; inset: 0;
+      background-image:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 80px,
+          rgba(255,255,255,0.015) 80px,
+          rgba(255,255,255,0.015) 81px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent 80px,
+          rgba(255,255,255,0.015) 80px,
+          rgba(255,255,255,0.015) 81px
+        );
+    }
+
+    .hero-gold-line {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+    }
+
+    .hero-content {
+      position: relative;
+      max-width: 820px;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 1.75rem;
+    }
+
+    .hero-brand-logo {
+      display: block;
+      width: clamp(190px, 24vw, 255px);
+      height: auto;
+      margin: 0 auto 1rem;
+    }
+
+    .hero h1 {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .hero-tagline {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.3rem;
+      font-style: italic;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 1.75rem;
+    }
+
+    .hero-divider {
+      width: 40px; height: 1px;
+      background: var(--navy);
+      margin: 0 auto 1.75rem;
+    }
+
+    .hero p {
+      font-size: 1.05rem; font-weight: 300;
+      color: var(--text-muted);
+      max-width: 700px; margin: 0 auto 2.5rem;
+      line-height: 1.85;
+    }
+
+    .hero-cta {
+      display: inline-block;
+      padding: 0.9rem 2.5rem;
+      background: var(--navy);
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.8rem; font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border-radius: 2px;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .hero-cta:hover { background: var(--slate); transform: translateY(-2px); }
+
+    .hero-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.85rem;
+    }
+
+    .hero-cta-ghost {
+      display: inline-block;
+      padding: 0.9rem 2rem;
+      color: var(--navy);
+      text-decoration: none;
+      font-size: 0.8rem; font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid var(--divider);
+      border-radius: 2px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .hero-cta-ghost:hover {
+      border-color: var(--navy);
+      color: var(--navy);
+    }
+
+    /* ── CREDENTIAL BAR ──────────────────────────── */
+    .cred-bar {
+      background: var(--ivory);
+      border-top: 1px solid var(--divider);
+      border-bottom: 1px solid var(--divider);
+      padding: 1.25rem 3rem;
+    }
+
+    .cred-bar-inner {
+      max-width: 1060px; margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .cred-item {
+      display: flex; align-items: center; justify-content: center; gap: 0.55rem;
+      font-size: 0.78rem; font-weight: 500;
+      color: var(--slate);
+      letter-spacing: 0.025em;
+      line-height: 1.45;
+      text-align: center;
+      min-height: 54px;
+      padding: 0.7rem 0.85rem;
+      background: #fff;
+      border: 1px solid var(--divider);
+      grid-column: span 2;
+    }
+
+    .cred-item:nth-child(5) { grid-column: 2 / span 2; }
+
+    .cred-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--gold);
+      flex-shrink: 0;
+    }
+
+    .cred-sep {
+      display: none;
+    }
+
+    /* ── SECTIONS ────────────────────────────────── */
+    section { padding: 6rem 3rem; }
+
+    .container { max-width: 1060px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 0.68rem; font-weight: 600;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+      font-family: 'EB Garamond', serif;
+      font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+      font-weight: 500; color: var(--navy);
+      line-height: 1.2; margin-bottom: 1rem;
+    }
+
+    .section-body {
+      font-size: 1rem; color: var(--text-muted);
+      max-width: 600px; line-height: 1.85; font-weight: 300;
+    }
+
+    .rule {
+      width: 36px; height: 2px;
+      background: var(--gold);
+      margin: 1.25rem 0 2rem;
+    }
+
+    /* ── SERVICES ────────────────────────────────── */
+    #expert-witness { background: #fff; }
+
+    section,
+    .service-item { scroll-margin-top: 86px; }
+
+    .services-layout {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 5rem;
+      align-items: start;
+      margin-top: 1rem;
+    }
+
+    .services-intro { padding-top: 0.5rem; }
+
+    .services-intro .independence-block {
+      margin-top: 2.5rem;
+      border-left: 2px solid var(--gold);
+      padding: 1rem 1.25rem;
+      background: var(--ivory);
+    }
+
+    .services-intro .independence-block p {
+      font-size: 0.875rem;
+      font-style: italic;
+      color: var(--text-mid);
+      line-height: 1.75;
+    }
+
+    .service-list { display: flex; flex-direction: column; gap: 0; }
+
+    .service-item {
+      border-top: 1px solid var(--divider);
+      padding: 2.25rem 0;
+    }
+
+    .service-item:last-child { border-bottom: 1px solid var(--divider); }
+
+    .service-num {
+      font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--gold);
+      margin-bottom: 0.6rem;
+    }
+
+    .service-item h3 {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.45rem; font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 0.75rem;
+    }
+
+    .service-item p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.8; font-weight: 300;
+      max-width: 540px;
+    }
+
+    /* ── EXPERTISE ───────────────────────────────── */
+    #expertise { background: var(--navy); }
+
+    #expertise .section-title { color: #fff; }
+    #expertise .section-body { color: rgba(255,255,255,0.6); }
+
+    .expertise-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin-top: 3rem;
+    }
+
+    .expertise-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-top: 2px solid rgba(255,255,255,0.65);
+      padding: 2rem 1.75rem;
+    }
+
+    .expertise-card h3 {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.25rem; font-weight: 500;
+      color: #fff; margin-bottom: 0.75rem;
+    }
+
+    .expertise-card p {
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.75; font-weight: 300;
+    }
+
+    /* ── ABOUT ───────────────────────────────────── */
+    #about { background: var(--ivory); }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 5rem;
+      align-items: start;
+    }
+
+    .about-sidebar {}
+
+    .photo-frame {
+      width: 100%;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .photo-frame img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .about-body p {
+      font-size: 1rem; color: var(--text-mid);
+      line-height: 1.9; font-weight: 300;
+      margin-bottom: 1.25rem;
+    }
+
+    .about-body p:last-child { margin-bottom: 0; }
+
+    /* ── CONTACT ─────────────────────────────────── */
+    #contact { background: #fff; }
+
+    .contact-container { max-width: 760px; }
+
+    .contact-header {
+      text-align: center;
+      margin-bottom: 2.25rem;
+    }
+
+    .contact-header .section-body { margin: 0 auto; }
+    .contact-header .rule { margin-left: auto; margin-right: auto; }
+
+    .contact-after {
+      margin-top: 2rem;
+      padding-top: 1.75rem;
+      border-top: 1px solid var(--divider);
+    }
+
+    .contact-after > p {
+      font-size: 0.9rem; color: var(--text-muted);
+      line-height: 1.8; font-weight: 300;
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .contact-details {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1.75rem;
+      flex-wrap: wrap;
+    }
+
+    .contact-detail {
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 0.85rem; color: var(--text-mid);
+    }
+
+    .contact-detail svg { color: var(--gold); flex-shrink: 0; }
+
+    .contact-note {
+      margin: 1.5rem auto 0;
+      padding: 1.25rem;
+      border: 1px solid var(--divider);
+      background: var(--ivory);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-style: italic;
+      text-align: center;
+    }
+
+    /* FORM */
+    .contact-form {
+      display: flex; flex-direction: column; gap: 1.25rem;
+      padding: 2rem;
+      background: #fff;
+      border: 1px solid var(--divider);
+      box-shadow: 0 14px 36px rgba(0,0,0,0.06);
+    }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+    .form-group label {
+      font-size: 0.7rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: var(--ivory);
+      border: 1px solid var(--divider);
+      border-radius: 2px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--gold);
+      background: #fff;
+    }
+
+    .form-group textarea { resize: vertical; min-height: 120px; }
+
+    .btn-submit {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      padding: 0.9rem 2rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+    }
+
+    .btn-submit:hover { background: var(--slate); }
+
+    .form-status {
+      min-height: 1.25rem;
+      font-size: 0.82rem;
+      color: var(--text-mid);
+      text-align: center;
+    }
+
+    /* ── FOOTER ──────────────────────────────────── */
+    footer {
+      background: var(--navy);
+      padding: 2rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-logo {
+      font-family: 'Lora', serif;
+      font-size: 1.1rem; font-weight: 500;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 0.012em;
+    }
+
+    footer p {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.04em;
+    }
+
+    footer a { color: var(--gold); text-decoration: none; }
+
+    /* ── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 900px) {
+      nav { padding: 0 1.5rem; }
+      section { padding: 3.5rem 1.5rem; }
+      .services-layout, .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+      .expertise-grid { grid-template-columns: 1fr; gap: 1rem; margin-top: 2rem; }
+      .form-row { grid-template-columns: 1fr; }
+      .nav-toggle { display: flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 66px; left: 0; right: 0;
+        padding: 1rem 1.5rem 1.5rem;
+        background: #fff;
+        border-bottom: 1px solid var(--divider);
+        box-shadow: 0 12px 26px rgba(0,0,0,0.08);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+      }
+      .nav-links.open { display: flex; }
+      .nav-links > li { border-bottom: 1px solid var(--divider); }
+      .nav-links > li:last-child { border-bottom: 0; padding-top: 0.75rem; }
+      .nav-links > li > a,
+      .nav-dropdown-trigger {
+        display: flex;
+        width: 100%;
+        padding: 0.9rem 0;
+        justify-content: space-between;
+      }
+      .nav-dropdown {
+        position: static;
+        min-width: 0;
+        display: none;
+        padding: 0 0 0.65rem 0.75rem;
+        border: 0;
+        box-shadow: none;
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+      }
+      .nav-item-dropdown:hover .nav-dropdown,
+      .nav-item-dropdown:focus-within .nav-dropdown { display: none; }
+      .nav-item-dropdown.open .nav-dropdown { display: block; }
+      .nav-cta { justify-content: center !important; }
+      .contact-form { padding: 1.5rem; }
+    }
+
+    @media (max-width: 520px) {
+      section { padding: 3rem 1.25rem; }
+      .hero { padding: 7.5rem 1.25rem 3.5rem; }
+      .services-layout { margin-top: 0; }
+      .services-intro .independence-block { margin-top: 1.5rem; }
+      .service-item { padding: 1.75rem 0; }
+      .expertise-card { padding: 1.5rem 1.25rem; }
+      .about-body p { line-height: 1.75; margin-bottom: 1rem; }
+      .contact-header { margin-bottom: 1.5rem; }
+      .contact-after { margin-top: 1.5rem; padding-top: 1.5rem; }
+      .contact-details { align-items: flex-start; flex-direction: column; gap: 0.85rem; }
+      .contact-form { padding: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo" aria-label="Swilcan Forensics home">
+    <img class="nav-logo-image" src="swilcan-logo.svg" alt="Swilcan Forensics" />
+  </a>
+  <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  </button>
+  <ul class="nav-links" id="primary-navigation">
+    <li class="nav-item-dropdown">
+      <button class="nav-dropdown-trigger" type="button" aria-expanded="false">
+        Services
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <path d="m5 7.5 5 5 5-5" />
+        </svg>
+      </button>
+      <ul class="nav-dropdown">
+        <li><a href="#expert-witness">Expert Witness</a></li>
+        <li><a href="#consultation">Consultation</a></li>
+        <li><a href="#education">Education &amp; Speaking</a></li>
+        <li><a href="#consulting-projects">Consulting Projects</a></li>
+      </ul>
+    </li>
+    <li><a href="#expertise">Expertise</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#contact" class="nav-cta">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <span class="hero-eyebrow">Forensic Nursing Expert Witness &amp; Consulting</span>
+    <h1>Swilcan Forensics</h1>
+    <img class="hero-brand-logo" src="swilcan-logo.svg" alt="" aria-hidden="true" />
+    <div class="hero-divider"></div>
+    <p>Swilcan Forensics provides objective, evidence-based forensic nursing expertise in sexual assault, domestic violence, child maltreatment, and non-fatal strangulation. Services include medical record review, case consultation, written expert opinions, testimony, education, and consulting.</p>
+    <div class="hero-actions">
+      <a href="#expert-witness" class="hero-cta">Expert Witness Services</a>
+      <a href="#contact" class="hero-cta-ghost">Request a Consultation</a>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="expert-witness">
+  <div class="container">
+    <div class="services-layout">
+      <div class="services-intro">
+        <p class="section-label">Primary Services</p>
+        <h2 class="section-title">Forensic Nursing Expert Witness Services</h2>
+        <div class="rule"></div>
+        <p class="section-body">Swilcan Forensics is available to prosecutors and defense attorneys for initial case consultation, medical record review, written expert opinions, deposition, and trial testimony. Ohio-based and available to travel.</p>
+        <div class="independence-block">
+          <p>Opinions are based on the available medical records, relevant science, and applicable standards of care. They do not change based on which party retains Swilcan Forensics.</p>
+        </div>
+      </div>
+      <div class="service-list">
+        <div class="service-item">
+          <div class="service-num">01</div>
+          <h3>Expert Witness Consultation &amp; Testimony</h3>
+          <p>Consultation with retaining counsel regarding forensic nursing matters and clear, well-prepared testimony at deposition, hearing, or trial. Complex medical evidence and forensic nursing practice are explained in accessible language and supported by the available record and relevant science. Travel is available as needed.</p>
+        </div>
+        <div class="service-item" id="consultation">
+          <div class="service-num">02</div>
+          <h3>Medical Record Review &amp; Case Consultation</h3>
+          <p>Review and analysis of medical records, forensic examination documentation, clinical findings, and related case materials. The purpose is to identify what the evidence does and does not support and help counsel understand the clinical issues relevant to the case.</p>
+        </div>
+        <div class="service-item">
+          <div class="service-num">03</div>
+          <h3>Written Expert Reports</h3>
+          <p>Clear, well-supported reports that identify the materials reviewed, explain the relevant medical and forensic nursing concepts, cite supporting literature when appropriate, and state the resulting opinions and their basis.</p>
+        </div>
+        <div class="service-item" id="education">
+          <div class="service-num">04</div>
+          <h3>Education, Speaking &amp; Professional Consulting</h3>
+          <p>Customized education, curriculum development, lectures, public speaking, and consultation for universities, nursing schools, medical schools, law schools, healthcare organizations, law enforcement, businesses, and community partners. Topics may include sexual assault, domestic violence, child maltreatment, non-fatal strangulation, medical forensic care, medical documentation, and the effective use of clinical experts.</p>
+        </div>
+        <div class="service-item" id="consulting-projects">
+          <div class="service-num">05</div>
+          <h3>Consulting Projects &amp; Professional Authorship</h3>
+          <p>Project-based consultation for professional publications, protocols, manuals, focus groups, and multidisciplinary or national initiatives related to forensic nursing and the medical response to violence. Tailored consultation is also available to businesses interested in developing protocols for responding to violence in the workplace.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERTISE -->
+<section id="expertise">
+  <div class="container">
+    <p class="section-label">Subject-Matter Expertise</p>
+    <h2 class="section-title">Clinical and Forensic Nursing Expertise</h2>
+    <div class="rule"></div>
+    <p class="section-body">The practice is grounded in medical evidence and forensic nursing standards across pediatric, adolescent, and adult patient populations.</p>
+    <div class="expertise-grid">
+      <div class="expertise-card">
+        <h3>Sexual Assault Nurse Examiner</h3>
+        <p>Dual board certification as a pediatric/adolescent and adult/adolescent Sexual Assault Nurse Examiner, with expertise in medical forensic examinations, clinical documentation, evidence collection, and examination practice.</p>
+      </div>
+      <div class="expertise-card">
+        <h3>Domestic Violence</h3>
+        <p>Clinical interpretation of records and findings in domestic violence matters, including injury identification, examination findings, and medical forensic documentation.</p>
+      </div>
+      <div class="expertise-card">
+        <h3>Non-Fatal Strangulation</h3>
+        <p>Advanced education in the medical forensic assessment of non-fatal strangulation, including clinical presentation, symptom and injury documentation, and the significance and limitations of both positive and absent findings.</p>
+      </div>
+      <div class="expertise-card">
+        <h3>Child Maltreatment</h3>
+        <p>Medical record review and consultation involving pediatric physical and sexual abuse concerns, including evaluation of clinical documentation, findings, and the medical context of the record.</p>
+      </div>
+      <div class="expertise-card">
+        <h3>Medical Record Interpretation</h3>
+        <p>Translation of medical terminology, examination findings, and clinical documentation into clear explanations for counsel, judges, and juries, including what the record can and cannot establish.</p>
+      </div>
+      <div class="expertise-card">
+        <h3>Professional Standards &amp; Education</h3>
+        <p>Consultation and education concerning forensic nursing practice, documentation, evidence collection, program development, curriculum design, and evidence-based professional standards.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <h2 class="section-title">About Selena McCormick</h2>
+    <div class="rule"></div>
+    <div class="about-grid">
+      <div class="about-sidebar">
+        <div class="photo-frame">
+          <img src="selena-headshot.png" alt="Selena McCormick, MSN, RN, CPN, SANE-P, SANE-A" />
+        </div>
+      </div>
+      <div class="about-body">
+        <p>Selena McCormick, MSN, RN, CPN, SANE-P, SANE-A is the founder and principal of Swilcan Forensics. She is a master's-prepared registered nurse and holds national board certifications as a Certified Pediatric Nurse, Pediatric/Adolescent Sexual Assault Nurse Examiner, and Adult/Adolescent Sexual Assault Nurse Examiner.</p>
+        <p>She earned a Bachelor of Science in Public Health from Saint Louis University, a Bachelor of Science in Nursing from New York University, and a Master of Science in Nursing with a focus in Nursing Executive Leadership from Northern Kentucky University. She is bilingual in English and Spanish and fluent in French.</p>
+        <p>Her clinical and educational background includes the medical forensic care of patients who have experienced sexual assault, domestic violence, human trafficking, child maltreatment, and non-fatal strangulation. Her work encompasses medical forensic examinations, evidence collection and documentation, multidisciplinary collaboration, professional education, and the interpretation of complex medical records.</p>
+        <p>Selena's role as an expert is deliberately focused and objective: to explain the medical evidence, the relevant science, and the limits of the record. She does not determine whether an alleged event occurred, and her opinions do not depend on which party retained her.</p>
+        <p>She has presented research and lectured nationally and has authored professional publications addressing forensic nursing and the medical response to violence.</p>
+        <p>Swilcan Forensics serves prosecutors and defense attorneys and also provides education, speaking, curriculum development, professional authorship, and project-based consulting to legal, healthcare, academic, business, law enforcement, and community organizations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="container contact-container">
+    <div class="contact-header">
+      <p class="section-label">Start a Conversation</p>
+      <h2 class="section-title">Request a Consultation</h2>
+      <div class="rule"></div>
+      <p class="section-body">Use the form to briefly describe your matter, educational need, or consulting project. Swilcan Forensics will follow up to discuss scope, timing, and fit.</p>
+    </div>
+    <form class="contact-form" name="consultation" method="POST" action="https://wmccormick0812.app.n8n.cloud/webhook/swilcan-forensics-inquiry" onsubmit="handleSubmit(event)">
+      <p hidden>
+        <label>Do not fill this out: <input name="bot-field" /></label>
+      </p>
+      <div class="form-group">
+        <label for="name">Name *</label>
+        <input type="text" id="name" name="name" placeholder="Jane Smith" required />
+      </div>
+      <div class="form-group">
+        <label for="email">Email Address *</label>
+        <input type="email" id="email" name="email" placeholder="jane@lawfirm.com" required />
+      </div>
+      <div class="form-group">
+        <label for="matter">How can we help? *</label>
+        <textarea id="matter" name="matter" placeholder="Briefly describe the case, educational need, speaking request, or consulting project..." required></textarea>
+      </div>
+      <button type="submit" class="btn-submit">Request a Consultation</button>
+      <p class="form-status" role="status" aria-live="polite"></p>
+    </form>
+    <div class="contact-after">
+      <p>Expert witness services are available to prosecutors and defense attorneys. Education, speaking, curriculum development, professional authorship, and project-based consulting are available to organizations nationwide.</p>
+      <div class="contact-details">
+        <div class="contact-detail">
+          <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+          </svg>
+          selena@swilcanforensics.com
+        </div>
+        <div class="contact-detail">
+          <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+          </svg>
+          Ohio-based &middot; Available nationwide
+        </div>
+      </div>
+      <div class="contact-note">
+        Services are provided to attorneys and organizations. Swilcan Forensics does not provide legal representation or personal legal advice. Expert opinions are grounded in the available evidence and relevant science and do not depend on the retaining party.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Swilcan Forensics</div>
+  <p>&copy; 2026 Swilcan Forensics LLC &nbsp;&middot;&nbsp; Ohio &nbsp;&middot;&nbsp; <a href="mailto:selena@swilcanforensics.com">selena@swilcanforensics.com</a></p>
+</footer>
+
+<script>
+  const navToggle = document.querySelector('.nav-toggle');
+  const navLinks = document.querySelector('.nav-links');
+  const serviceMenu = document.querySelector('.nav-item-dropdown');
+  const serviceTrigger = document.querySelector('.nav-dropdown-trigger');
+
+  function closeNavigation() {
+    navLinks.classList.remove('open');
+    serviceMenu.classList.remove('open');
+    navToggle.setAttribute('aria-expanded', 'false');
+    serviceTrigger.setAttribute('aria-expanded', 'false');
+  }
+
+  navToggle.addEventListener('click', () => {
+    const isOpen = navLinks.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  serviceTrigger.addEventListener('click', () => {
+    const isOpen = serviceMenu.classList.toggle('open');
+    serviceTrigger.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  document.querySelectorAll('.nav-links a').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      const targetSelector = link.getAttribute('href');
+      const target = targetSelector?.startsWith('#')
+        ? document.querySelector(targetSelector)
+        : null;
+      if (!target) return;
+
+      event.preventDefault();
+      closeNavigation();
+      window.history.pushState(null, '', targetSelector);
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeNavigation();
+    }
+  });
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = form.querySelector('.btn-submit');
+    const status = form.querySelector('.form-status');
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(new FormData(form)).toString(),
+      });
+      if (!response.ok) throw new Error('Submission failed');
+      const result = await response.json();
+      if (!result.ok) throw new Error('Submission failed');
+      form.reset();
+      btn.textContent = 'Inquiry Received';
+      btn.style.background = '#3D4F5F';
+      status.textContent = 'Thank you. Swilcan Forensics will follow up shortly.';
+    } catch (error) {
+      btn.textContent = 'Request a Consultation';
+      status.textContent = 'The form could not be submitted. Please email selena@swilcanforensics.com.';
+      btn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
