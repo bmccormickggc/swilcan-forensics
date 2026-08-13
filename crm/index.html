@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Swilcan CRM</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <img src="/swilcan-logo.svg" alt="Swilcan Forensics">
+      <p class="eyebrow">Private workspace</p>
+      <h1>Outreach CRM</h1>
+      <p class="auth-copy">Enter Selena's Swilcan email address. A secure sign-in link will be sent to that account.</p>
+      <form id="loginForm">
+        <label><span>Email</span><input id="loginEmail" type="email" autocomplete="email" required placeholder="selena@swilcanforensics.com"></label>
+        <button class="btn primary" type="submit">Email secure sign-in link</button>
+      </form>
+      <p class="auth-status" id="authStatus" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <div id="appShell" hidden>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Swilcan Forensics home">
+      <img src="/swilcan-logo.svg" alt="Swilcan Forensics">
+    </a>
+    <div class="topbar-copy">
+      <p class="eyebrow">Private workspace</p>
+      <h1>Outreach CRM</h1>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn secondary" id="exportBtn">Export backup</button>
+      <button class="btn secondary" id="importBtn">Import</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+      <button class="btn primary" id="addProspectBtn">Add prospect</button>
+      <button class="btn secondary" id="signOutBtn">Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="guardrail" aria-label="Privacy rule">
+      <strong>Contact management only.</strong> Never enter patient names, case facts, medical details, or other PHI.
+    </section>
+
+    <nav class="tabs" aria-label="CRM views">
+      <button class="tab active" data-view="pipeline">Pipeline</button>
+      <button class="tab" data-view="review">Candidate review <span class="count" id="reviewCount">0</span></button>
+      <button class="tab" data-view="actions">Next actions <span class="count" id="actionCount">0</span></button>
+    </nav>
+
+    <section id="pipelineView" class="view active">
+      <div class="metrics" id="metrics"></div>
+      <div class="toolbar">
+        <label class="search"><span>Search</span><input id="searchInput" type="search" placeholder="Name, office, role, or location"></label>
+        <label><span>Location</span><select id="locationFilter"><option value="">All locations</option></select></label>
+      </div>
+      <div class="kanban" id="kanban" aria-label="Sales pipeline"></div>
+    </section>
+
+    <section id="reviewView" class="view">
+      <div class="section-heading">
+        <div><p class="eyebrow">Research before outreach</p><h2>Candidate review</h2></div>
+        <button class="btn primary" id="addCandidateBtn">Add candidate</button>
+      </div>
+      <p class="section-note">Approve only people who plausibly retain forensic nursing experts. Approval moves the contact into Prospecting; it does not send anything.</p>
+      <div class="review-grid" id="reviewGrid"></div>
+    </section>
+
+    <section id="actionsView" class="view">
+      <div class="section-heading"><div><p class="eyebrow">Manual review required</p><h2>Next actions</h2></div></div>
+      <p class="section-note">Drafts are generated here. Selena reviews and sends from her Swilcan email. The CRM never sends automatically.</p>
+      <div class="action-list" id="actionList"></div>
+    </section>
+  </main>
+
+  <dialog id="recordDialog">
+    <form id="recordForm">
+      <div class="dialog-heading"><div><p class="eyebrow" id="dialogEyebrow">New record</p><h2 id="dialogTitle">Add prospect</h2></div><button class="icon-btn" id="closeRecordBtn" type="button" aria-label="Close">×</button></div>
+      <input type="hidden" id="recordType"><input type="hidden" id="recordId">
+      <div class="form-grid">
+        <label><span>Name *</span><input id="name" required maxlength="160"></label>
+        <label><span>Organization *</span><input id="organization" required maxlength="240"></label>
+        <label><span>Role</span><input id="role" maxlength="160" placeholder="Assistant District Attorney"></label>
+        <label><span>Email</span><input id="email" type="email" maxlength="320"></label>
+        <label><span>Location</span><input id="location" maxlength="160" placeholder="New York, NY"></label>
+        <label><span>Source URL</span><input id="sourceUrl" type="url" maxlength="1000"></label>
+      </div>
+      <label class="full"><span id="notesLabel">Notes</span><textarea id="notes" rows="4" maxlength="5000" placeholder="Contact context only. No case details or PHI."></textarea></label>
+      <div class="dialog-actions"><button class="btn secondary" id="cancelRecordBtn" type="button">Cancel</button><button class="btn primary" id="saveRecordBtn" type="submit">Save</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="detailDialog">
+    <div id="detailContent"></div>
+  </dialog>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
+  <script src="config.js"></script>
+  <script src="app.js" defer></script>
+</body>
+</html>
