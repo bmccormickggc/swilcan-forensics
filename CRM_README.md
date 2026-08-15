@@ -10,15 +10,15 @@ authentication and shared persistent storage.
    and emails Bill and Selena a link to Prospect Review.
 2. Bill or Selena approves or declines each contact. Declines require a reason
    and retain feedback for subsequent research prompts.
-3. Approval moves the complete research record directly to Outreach Active and
+3. Approval moves the complete research record directly into Prospecting and
    makes the first draft due immediately. Nothing sends automatically.
 4. Drafts follow a short Sandler-style cadence: one-sentence initial question,
    seven-day nudge, then a 30-day close-the-loop/alternate-contact question.
 5. After three non-responses, the workflow requests another entry point at the
    organization. After three failed entry points, the organization closes cold.
-6. An affirmative reply moves the same record into Conversation with its source,
+6. An affirmative reply moves the same record into In Conversation with its source,
    rationale, research, draft history, and activity timeline intact. The
-   remaining stages are Qualified, Proposal, and Won.
+   remaining stages are Proposal and Won.
 
 The CRM must not contain patient names, case facts, medical records, or PHI.
 

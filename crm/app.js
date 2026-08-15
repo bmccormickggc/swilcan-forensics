@@ -4,8 +4,7 @@ const ALLOWED_EMAILS = new Set([
   "bill.mccormick14@gmail.com"
 ]);
 const STAGES = [
-  ["prospect", "Prospecting"], ["outreach", "Outreach active"],
-  ["conversation", "Conversation"], ["qualified", "Qualified"],
+  ["prospect", "Prospecting"], ["conversation", "In conversation"],
   ["proposal", "Proposal"], ["won", "Won"]
 ];
 const CADENCE = [0, 7, 30];
@@ -21,6 +20,15 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, c => ({"&"
 const addDays = (date, days) => { const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
 const firstName = (name) => String(name || "there").trim().split(/\s+/)[0];
 const activity = (type, summary, details = "") => ({ id: uid(), type, summary, details, at: new Date().toISOString() });
+const normalizeState = incoming => ({
+  ...incoming,
+  schemaVersion: 2,
+  prospects: (incoming.prospects || []).map(p => ({
+    ...p,
+    stage: p.stage === "outreach" ? "prospect" : p.stage === "qualified" ? "conversation" : p.stage
+  })),
+  candidates: incoming.candidates || []
+});
 
 function configIsReady() {
   return /^https:\/\/.+\.supabase\.co$/.test(CONFIG.url || "") &&
@@ -103,7 +111,7 @@ async function requestMagicLink(event) {
 
 async function loadState() {
   if (localMode) {
-    state = JSON.parse(localStorage.getItem("swilcan-crm-preview") || "null") || state;
+    state = normalizeState(JSON.parse(localStorage.getItem("swilcan-crm-preview") || "null") || state);
     render(); return;
   }
   const { data, error } = await supabaseClient
@@ -112,7 +120,7 @@ async function loadState() {
     .eq("id", 1)
     .single();
   if (error) return toast(`CRM data could not be loaded: ${error.message}`, true);
-  state = { ...data.payload, revision: Number(data.revision), updatedAt: data.updated_at };
+  state = normalizeState({ ...data.payload, revision: Number(data.revision), updatedAt: data.updated_at });
   render();
 }
 
@@ -143,7 +151,7 @@ async function saveState() {
     toast("The CRM changed in another session. Reloaded the newer version.", true);
     await loadState(); return false;
   }
-  state = { ...data.payload, revision: Number(data.revision), updatedAt: data.updated_at };
+  state = normalizeState({ ...data.payload, revision: Number(data.revision), updatedAt: data.updated_at });
   render();
   return true;
 }
@@ -154,12 +162,10 @@ function renderCounts() {
   $("#actionCount").textContent = dueProspects().length;
 }
 function renderMetrics() {
-  const active = state.prospects.filter(p => !["won", "cold"].includes(p.stage));
   const values = [
-    ["Active prospects", active.length],
-    ["Replies", state.prospects.filter(p => ["conversation", "qualified", "proposal", "won"].includes(p.stage)).length],
-    ["Qualified", state.prospects.filter(p => ["qualified", "proposal", "won"].includes(p.stage)).length],
-    ["Proposals", state.prospects.filter(p => ["proposal", "won"].includes(p.stage)).length],
+    ["Prospecting", state.prospects.filter(p => p.stage === "prospect").length],
+    ["In conversation", state.prospects.filter(p => p.stage === "conversation").length],
+    ["Proposals", state.prospects.filter(p => p.stage === "proposal").length],
     ["Won", state.prospects.filter(p => p.stage === "won").length],
   ];
   $("#metrics").innerHTML = values.map(([label, value]) => `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`).join("");
@@ -228,7 +234,7 @@ async function moveProspect(id, targetStage, options = {}) {
     : p.nextActionDate;
   if (p.stage === targetStage && requestedNextAction === p.nextActionDate) return true;
   p.stage = targetStage;
-  p.nextActionDate = requestedNextAction || (targetStage === "outreach" ? today() : "");
+  p.nextActionDate = requestedNextAction || (targetStage === "prospect" && !p.needsAlternateContact ? today() : "");
   p.updatedAt = new Date().toISOString();
   try {
     if (!await saveState()) return false;
@@ -302,7 +308,7 @@ function renderCandidates() {
   $$(".reject").forEach(b => b.onclick = () => rejectCandidate(b.dataset.id));
   $$(".edit-candidate").forEach(b => b.onclick = () => openRecord("candidate", b.dataset.id));
 }
-function dueProspects() { return state.prospects.filter(p => p.stage === "outreach" && p.nextActionDate && p.nextActionDate <= today()).sort((a,b) => a.nextActionDate.localeCompare(b.nextActionDate)); }
+function dueProspects() { return state.prospects.filter(p => p.stage === "prospect" && p.nextActionDate && p.nextActionDate <= today()).sort((a,b) => a.nextActionDate.localeCompare(b.nextActionDate)); }
 function renderActions() {
   const rows = dueProspects();
   $("#actionList").innerHTML = rows.map(p => `<article class="action-card"><div><h3>${escapeHtml(p.name)} · ${escapeHtml(p.organization)}</h3><div class="org">${p.outreachStep === 0 ? "Initial outreach" : `Follow-up ${p.outreachStep}`} due ${escapeHtml(p.nextActionDate)}</div></div><div class="action-actions"><button class="btn primary small draft-btn" data-id="${p.id}">Review draft</button><button class="btn secondary small replied-btn" data-id="${p.id}">Affirmative reply</button></div></article>`).join("") || `<div class="empty">No outreach is due today.</div>`;
@@ -352,7 +358,7 @@ async function approveCandidate(id) {
     id: uid(), candidateId: c.id, name:c.name, organization:c.organization, role:c.role,
     email:c.email, location:c.location, sourceUrl:c.sourceUrl, notes:"",
     rationale:c.rationale || "", researchSummary:c.researchSummary || "", outreachAngle:c.outreachAngle || "",
-    prospectingBatchId:c.batchId || c.prospectingBatchId || "manual", stage:"outreach", outreachStep:0,
+    prospectingBatchId:c.batchId || c.prospectingBatchId || "manual", stage:"prospect", outreachStep:0,
     entryPointAttempt:1, nextActionDate:today(), lastContactDate:"",
     activity:[activity("approved", "Approved for draft-only outreach", c.rationale || "")],
     createdAt:now, updatedAt:now
@@ -422,7 +428,7 @@ function showDraft(id) {
     toast(p.stage==="cold"?"Closed as cold.":p.needsAlternateContact?"Queued for an alternate contact.":`Next follow-up scheduled for ${p.nextActionDate}.`);
   };
 }
-async function markReplied(id) { const p=state.prospects.find(x=>x.id===id);if(!p)return;p.stage="conversation";p.nextActionDate="";p.needsAlternateContact=false;p.activity=p.activity||[];p.activity.push(activity("reply","Affirmative reply recorded; moved to active CRM"));p.updatedAt=new Date().toISOString();await saveState();toast("Moved to Conversation with full prospecting history."); }
+async function markReplied(id) { const p=state.prospects.find(x=>x.id===id);if(!p)return;p.stage="conversation";p.nextActionDate="";p.needsAlternateContact=false;p.activity=p.activity||[];p.activity.push(activity("reply","Affirmative reply recorded; moved to active CRM"));p.updatedAt=new Date().toISOString();await saveState();toast("Moved to In conversation with full prospecting history."); }
 function toast(message,error=false){const el=$("#toast");el.textContent=message;el.className=`toast show${error?" error":""}`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.className="toast",3200);}
 
 $$('.tab').forEach(t=>t.onclick=()=>switchView(t.dataset.view));
