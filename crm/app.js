@@ -120,7 +120,7 @@ async function saveState() {
     state.revision = Number(state.revision || 0) + 1;
     state.updatedAt = new Date().toISOString();
     localStorage.setItem("swilcan-crm-preview", JSON.stringify(state));
-    render(); return;
+    render(); return true;
   }
   const expectedRevision = Number(state.revision || 0);
   const payload = { schemaVersion: 1, prospects: state.prospects, candidates: state.candidates };
@@ -140,10 +140,11 @@ async function saveState() {
   if (error) throw new Error(error.message);
   if (!data) {
     toast("The CRM changed in another session. Reloaded the newer version.", true);
-    await loadState(); return;
+    await loadState(); return false;
   }
   state = { ...data.payload, revision: Number(data.revision), updatedAt: data.updated_at };
   render();
+  return true;
 }
 
 function render() { renderCounts(); renderMetrics(); renderFilters(); renderKanban(); renderCandidates(); renderActions(); }
@@ -179,26 +180,111 @@ function renderKanban() {
     return `<section class="column"><div class="column-head"><h3>${label}</h3><span class="column-count">${cards.length}</span></div><div class="card-list" data-stage="${key}">${cards.map(cardHtml).join("") || `<div class="empty">No contacts</div>`}</div></section>`;
   }).join("");
   $$(".prospect-card").forEach(el => {
-    el.addEventListener("click", () => openDetail(el.dataset.id));
-    el.addEventListener("dragstart", event => event.dataTransfer.setData("text/plain", el.dataset.id));
-  });
-  $$(".card-list").forEach(column => {
-    column.addEventListener("dragover", event => event.preventDefault());
-    column.addEventListener("drop", async event => {
-      event.preventDefault();
-      const p = state.prospects.find(x => x.id === event.dataTransfer.getData("text/plain"));
-      if (!p || p.stage === column.dataset.stage) return;
-      p.stage = column.dataset.stage;
-      if (p.stage === "outreach" && !p.nextActionDate) p.nextActionDate = today();
-      p.updatedAt = new Date().toISOString();
-      await saveState(); toast(`Moved to ${STAGES.find(([key]) => key === p.stage)?.[1] || p.stage}.`);
+    let suppressClick = false;
+    el.addEventListener("click", () => { if (!suppressClick) openDetail(el.dataset.id); });
+    el.addEventListener("dragstart", event => {
+      suppressClick = true;
+      el.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", el.dataset.id);
+    });
+    el.addEventListener("dragend", () => {
+      el.classList.remove("dragging");
+      $$(".card-list").forEach(list => list.classList.remove("drag-over"));
+      setTimeout(() => { suppressClick = false; }, 0);
     });
   });
+  $$(".card-list").forEach(column => {
+    column.addEventListener("dragover", event => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      $$(".card-list").forEach(list => list.classList.toggle("drag-over", list === column));
+    });
+    column.addEventListener("dragleave", event => {
+      if (!column.contains(event.relatedTarget)) column.classList.remove("drag-over");
+    });
+    column.addEventListener("drop", async event => {
+      event.preventDefault();
+      $$(".card-list").forEach(list => list.classList.remove("drag-over"));
+      await moveProspect(event.dataTransfer.getData("text/plain"), column.dataset.stage);
+    });
+  });
+  $$(".drag-handle").forEach(handle => installPointerDrag(handle));
 }
 function cardHtml(p) {
   let due = "";
   if (p.nextActionDate) { const cls = p.nextActionDate < today() ? "late" : p.nextActionDate === today() ? "due" : ""; due = `<span class="pill ${cls}">${p.nextActionDate}</span>`; }
-  return `<article class="prospect-card" draggable="true" data-id="${escapeHtml(p.id)}"><h4>${escapeHtml(p.name)}</h4><div class="org">${escapeHtml(p.organization)}${p.role ? ` · ${escapeHtml(p.role)}` : ""}</div><div class="meta">${p.location ? `<span class="pill">${escapeHtml(p.location)}</span>` : ""}${due}</div></article>`;
+  return `<article class="prospect-card" draggable="true" data-id="${escapeHtml(p.id)}"><div class="card-title"><h4>${escapeHtml(p.name)}</h4><button class="drag-handle" type="button" aria-label="Move ${escapeHtml(p.name)}" title="Drag to another stage">⋮⋮</button></div><div class="org">${escapeHtml(p.organization)}${p.role ? ` · ${escapeHtml(p.role)}` : ""}</div><div class="meta">${p.location ? `<span class="pill">${escapeHtml(p.location)}</span>` : ""}${due}</div></article>`;
+}
+
+async function moveProspect(id, targetStage, options = {}) {
+  const p = state.prospects.find(x => x.id === id);
+  if (!p || !targetStage) return false;
+  const previous = { stage: p.stage, nextActionDate: p.nextActionDate, updatedAt: p.updatedAt };
+  const requestedNextAction = Object.prototype.hasOwnProperty.call(options, "nextActionDate")
+    ? options.nextActionDate
+    : p.nextActionDate;
+  if (p.stage === targetStage && requestedNextAction === p.nextActionDate) return true;
+  p.stage = targetStage;
+  p.nextActionDate = requestedNextAction || (targetStage === "outreach" ? today() : "");
+  p.updatedAt = new Date().toISOString();
+  try {
+    if (!await saveState()) return false;
+    const label = STAGES.find(([key]) => key === targetStage)?.[1] || targetStage;
+    toast(options.message || `Moved to ${label}.`);
+    return true;
+  } catch (error) {
+    Object.assign(p, previous);
+    render();
+    toast(`Could not move contact: ${error.message}`, true);
+    return false;
+  }
+}
+
+function installPointerDrag(handle) {
+  const card = handle.closest(".prospect-card");
+  let active = false;
+  let target = null;
+  const clearTarget = () => {
+    $$(".card-list").forEach(list => list.classList.remove("drag-over"));
+    target = null;
+  };
+  handle.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); });
+  handle.addEventListener("pointerdown", event => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault(); event.stopPropagation();
+    active = true;
+    handle.setPointerCapture(event.pointerId);
+    card.classList.add("dragging");
+  });
+  handle.addEventListener("pointermove", event => {
+    if (!active) return;
+    event.preventDefault();
+    const board = $("#kanban");
+    const bounds = board.getBoundingClientRect();
+    if (event.clientX > bounds.right - 44) board.scrollLeft += 24;
+    if (event.clientX < bounds.left + 44) board.scrollLeft -= 24;
+    const next = document.elementFromPoint(event.clientX, event.clientY)?.closest(".card-list") || null;
+    if (next === target) return;
+    clearTarget();
+    target = next;
+    target?.classList.add("drag-over");
+  });
+  const finish = async event => {
+    if (!active) return;
+    event.preventDefault(); event.stopPropagation();
+    active = false;
+    card.classList.remove("dragging");
+    const destination = target?.dataset.stage;
+    clearTarget();
+    if (destination) await moveProspect(card.dataset.id, destination);
+  };
+  handle.addEventListener("pointerup", finish);
+  handle.addEventListener("pointercancel", () => {
+    active = false;
+    card.classList.remove("dragging");
+    clearTarget();
+  });
 }
 function renderCandidates() {
   const candidates = state.candidates.filter(c => c.reviewStatus === "pending");
@@ -261,7 +347,13 @@ function openDetail(id) {
   $("#detailContent").innerHTML = `<div class="dialog-heading"><div><p class="eyebrow">Prospect</p><h2>${escapeHtml(p.name)}</h2><div class="org">${escapeHtml(p.organization)}</div></div><button class="icon-btn close-detail">×</button></div><div class="detail-grid"><label class="detail-row"><span>Stage</span><select id="detailStage">${stageOptions}</select></label><label class="detail-row"><span>Next action</span><input id="detailNext" type="date" value="${escapeHtml(p.nextActionDate || "")}"></label><div class="detail-row"><span>Email</span><div class="detail-value">${escapeHtml(p.email || "—")}</div></div><div class="detail-row"><span>Location</span><div class="detail-value">${escapeHtml(p.location || "—")}</div></div><div class="detail-row full"><span>Notes</span><div class="detail-value">${escapeHtml(p.notes || "—")}</div></div></div><div class="dialog-actions"><button class="btn danger" id="deleteProspect">Delete</button><button class="btn secondary" id="editProspect">Edit</button><button class="btn primary" id="saveDetail">Save changes</button></div>`;
   $("#detailDialog").showModal(); $(".close-detail").onclick = () => $("#detailDialog").close();
   $("#editProspect").onclick = () => { $("#detailDialog").close(); openRecord("prospect", id); };
-  $("#saveDetail").onclick = async () => { p.stage=$("#detailStage").value; p.nextActionDate=$("#detailNext").value || (p.stage === "outreach" ? today() : ""); p.updatedAt=new Date().toISOString(); await saveState(); $("#detailDialog").close(); toast("Updated."); };
+  $("#saveDetail").onclick = async () => {
+    const saved = await moveProspect(id, $("#detailStage").value, {
+      nextActionDate: $("#detailNext").value,
+      message: "Updated."
+    });
+    if (saved) $("#detailDialog").close();
+  };
   $("#deleteProspect").onclick = async () => { if (!confirm(`Delete ${p.name}?`)) return; state.prospects=state.prospects.filter(x=>x.id!==id); await saveState(); $("#detailDialog").close(); toast("Deleted."); };
 }
 function draftFor(p) {
