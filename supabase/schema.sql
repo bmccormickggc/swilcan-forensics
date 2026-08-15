@@ -1,6 +1,6 @@
 -- Swilcan CRM database setup. Run once in the Supabase SQL editor.
 -- The browser receives only the anon key. Row Level Security restricts all
--- CRM reads and writes to Selena's authenticated Swilcan account.
+-- CRM reads and writes to the explicitly authorized accounts.
 
 create table if not exists public.crm_state (
   id smallint primary key default 1 check (id = 1),
@@ -15,17 +15,28 @@ alter table public.crm_state enable row level security;
 alter table public.crm_state force row level security;
 
 drop policy if exists "selena can read crm" on public.crm_state;
-create policy "selena can read crm"
+drop policy if exists "authorized users can read crm" on public.crm_state;
+create policy "authorized users can read crm"
 on public.crm_state for select
 to authenticated
-using (lower(auth.jwt() ->> 'email') = 'selena@swilcanforensics.com');
+using (lower(auth.jwt() ->> 'email') in (
+  'selena@swilcanforensics.com',
+  'bill.mccormick14@gmail.com'
+));
 
 drop policy if exists "selena can update crm" on public.crm_state;
-create policy "selena can update crm"
+drop policy if exists "authorized users can update crm" on public.crm_state;
+create policy "authorized users can update crm"
 on public.crm_state for update
 to authenticated
-using (lower(auth.jwt() ->> 'email') = 'selena@swilcanforensics.com')
-with check (lower(auth.jwt() ->> 'email') = 'selena@swilcanforensics.com');
+using (lower(auth.jwt() ->> 'email') in (
+  'selena@swilcanforensics.com',
+  'bill.mccormick14@gmail.com'
+))
+with check (lower(auth.jwt() ->> 'email') in (
+  'selena@swilcanforensics.com',
+  'bill.mccormick14@gmail.com'
+));
 
 insert into public.crm_state (id) values (1)
 on conflict (id) do nothing;

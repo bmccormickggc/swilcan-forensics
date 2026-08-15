@@ -1,4 +1,8 @@
 const CONFIG = window.SWILCAN_SUPABASE || {};
+const ALLOWED_EMAILS = new Set([
+  "selena@swilcanforensics.com",
+  "bill.mccormick14@gmail.com"
+]);
 const STAGES = [
   ["prospect", "Prospecting"], ["outreach", "Outreach active"],
   ["conversation", "Conversation"], ["qualified", "Qualified"],
@@ -53,11 +57,24 @@ async function initializeAuth() {
   const { data, error } = await supabaseClient.auth.getSession();
   if (error) showLogin(error.message, true);
   else if (data.session) {
-    showApp(); await loadState();
+    const email = String(data.session.user?.email || "").trim().toLowerCase();
+    if (!ALLOWED_EMAILS.has(email)) {
+      await supabaseClient.auth.signOut();
+      showLogin("Access denied.", true);
+    } else {
+      showApp(); await loadState();
+    }
   } else showLogin();
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if (event === "SIGNED_IN" && session) { showApp(); await loadState(); }
+    if (event === "SIGNED_IN" && session) {
+      const email = String(session.user?.email || "").trim().toLowerCase();
+      if (!ALLOWED_EMAILS.has(email)) {
+        void supabaseClient.auth.signOut();
+        return showLogin("Access denied.", true);
+      }
+      showApp(); await loadState();
+    }
     if (event === "SIGNED_OUT") showLogin("Signed out.");
   });
 }
@@ -66,15 +83,15 @@ async function requestMagicLink(event) {
   event.preventDefault();
   if (!supabaseClient) return showLogin("CRM backend setup is still pending.", true);
   const email = $("#loginEmail").value.trim().toLowerCase();
-  if (email !== "selena@swilcanforensics.com") {
-    return showLogin("Access is limited to Selena's Swilcan account.", true);
+  if (!ALLOWED_EMAILS.has(email)) {
+    return showLogin("Access denied.", true);
   }
   $("#authStatus").textContent = "Sending secure link…";
   const { error } = await supabaseClient.auth.signInWithOtp({
     email,
     options: { shouldCreateUser: false, emailRedirectTo: `${location.origin}/crm/` }
   });
-  showLogin(error ? error.message : "Check Selena's email for the secure sign-in link.", Boolean(error));
+  showLogin(error ? error.message : "Check your email for the sign-in link.", Boolean(error));
 }
 
 async function loadState() {

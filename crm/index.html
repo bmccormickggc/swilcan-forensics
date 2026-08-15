@@ -4,19 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Swilcan CRM</title>
+  <title>Sign in</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <section class="auth-screen" id="authScreen">
     <div class="auth-card">
       <img src="/swilcan-logo.svg" alt="Swilcan Forensics">
-      <p class="eyebrow">Private workspace</p>
-      <h1>Outreach CRM</h1>
-      <p class="auth-copy">Enter Selena's Swilcan email address. A secure sign-in link will be sent to that account.</p>
       <form id="loginForm">
-        <label><span>Email</span><input id="loginEmail" type="email" autocomplete="email" required placeholder="selena@swilcanforensics.com"></label>
-        <button class="btn primary" type="submit">Email secure sign-in link</button>
+        <label class="sr-only" for="loginEmail">Email address</label>
+        <input id="loginEmail" type="email" autocomplete="email" required placeholder="Email address" aria-label="Email address">
+        <button class="btn primary" type="submit">Send sign-in link</button>
       </form>
       <p class="auth-status" id="authStatus" role="status" aria-live="polite"></p>
     </div>

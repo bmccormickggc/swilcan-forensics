@@ -23,7 +23,7 @@ The CRM must not contain patient names, case facts, medical records, or PHI.
 
 - Supabase magic-link login with account creation disabled in the application.
 - Row Level Security permits CRM reads and writes only when the authenticated
-  email is exactly `selena@swilcanforensics.com`.
+  email is `selena@swilcanforensics.com` or `bill.mccormick14@gmail.com`.
 - The browser contains the Supabase anon key, which is intentionally public;
   RLS is the authorization boundary. Never place a service-role key in this
   repository or browser code.
