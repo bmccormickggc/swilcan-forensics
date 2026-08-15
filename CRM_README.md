@@ -19,6 +19,14 @@ authentication and shared persistent storage.
 6. An affirmative reply moves the same record into In Conversation with its source,
    rationale, research, draft history, and activity timeline intact. The
    remaining stages are Proposal and Won.
+7. Moving In Conversation to Proposal opens a required engagement-letter form.
+   It uses the February 22, 2026 Barnes engagement as the controlled baseline,
+   attaches the completed proposal data to the CRM record, and generates a PDF.
+   The proposal includes the standard scope, adjustable rates and cancellation
+   terms, payment terms, liability language, and signature acceptance blocks.
+8. Customer delivery remains draft-only. A real draft in Selena's mailbox must
+   not be enabled until that mailbox is connected and verified; the CRM never
+   sends a proposal automatically.
 
 The CRM must not contain patient names, case facts, medical records, or PHI.
 

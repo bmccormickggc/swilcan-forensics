@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Sign in</title>
-  <link rel="stylesheet" href="styles.css?v=20260815-5">
+  <link rel="stylesheet" href="styles.css?v=20260815-6">
 </head>
 <body>
   <section class="auth-screen" id="authScreen">
@@ -109,6 +109,42 @@
     </form>
   </dialog>
 
+  <dialog id="proposalDialog" class="wide-dialog">
+    <form id="proposalForm">
+      <div class="dialog-heading"><div><p class="eyebrow">Required stage gate</p><h2>Create engagement proposal</h2></div><button class="icon-btn" id="closeProposalBtn" type="button" aria-label="Close">&times;</button></div>
+      <input type="hidden" id="proposalProspectId">
+      <p class="section-note">Based on the February 22, 2026 Swilcan engagement letter. Enter only engagement details; do not include medical records or clinical PHI.</p>
+      <div class="form-grid">
+        <label><span>Proposal date *</span><input id="proposalDate" type="date" required></label>
+        <label><span>Client email *</span><input id="proposalEmail" type="email" required maxlength="320"></label>
+        <label><span>Attorney/client name *</span><input id="proposalAttorney" required maxlength="200"></label>
+        <label><span>Law firm/organization</span><input id="proposalFirm" maxlength="240"></label>
+        <label><span>Address line</span><input id="proposalAddress" maxlength="240"></label>
+        <label><span>City, state ZIP</span><input id="proposalCityState" maxlength="200"></label>
+        <label class="full"><span>Case name / case number *</span><input id="proposalCase" required maxlength="300" placeholder="State v. Client (case number / jurisdiction)"></label>
+        <label><span>Salutation *</span><input id="proposalSalutation" required maxlength="120" placeholder="Mr. Lackford"></label>
+      </div>
+      <fieldset class="scope-fieldset"><legend>Scope of services</legend>
+        <label><input class="proposal-scope" type="checkbox" value="Review and analysis of medical records, forensic examination documentation, and case materials" checked> Record and case-material review</label>
+        <label><input class="proposal-scope" type="checkbox" value="Preparation of written opinions and/or expert reports" checked> Written opinions or expert reports</label>
+        <label><input class="proposal-scope" type="checkbox" value="Consultation with retaining counsel regarding forensic nursing matters" checked> Counsel consultation</label>
+        <label><input class="proposal-scope" type="checkbox" value="Deposition and/or trial testimony as needed" checked> Deposition or trial testimony</label>
+        <label><input class="proposal-scope" type="checkbox" value="Travel to depositions, hearings, and trial as required" checked> Required travel</label>
+      </fieldset>
+      <label class="full"><span>Additional scope (optional)</span><textarea id="proposalCustomScope" rows="3" maxlength="2000"></textarea></label>
+      <div class="form-grid fee-grid">
+        <label><span>Review & consultation / hour *</span><input id="proposalReviewRate" type="number" min="0" step="1" value="375" required></label>
+        <label><span>Travel time / hour *</span><input id="proposalTravelRate" type="number" min="0" step="1" value="375" required></label>
+        <label><span>Testimony / hour *</span><input id="proposalTestimonyRate" type="number" min="0" step="1" value="525" required></label>
+        <label><span>Billing increment (hours) *</span><input id="proposalIncrement" type="number" min="0.1" step="0.05" value="0.25" required></label>
+        <label><span>Cancellation notice (hours) *</span><input id="proposalCancelNotice" type="number" min="0" step="1" value="48" required></label>
+        <label><span>Minimum testimony charge (hours) *</span><input id="proposalCancelMinimum" type="number" min="0" step="1" value="4" required></label>
+        <label><span>Credit-card surcharge (%) *</span><input id="proposalCardSurcharge" type="number" min="0" step="0.1" value="3" required></label>
+      </div>
+      <div class="dialog-actions"><button class="btn secondary" id="cancelProposalBtn" type="button">Cancel</button><button class="btn primary" type="submit">Generate proposal and move stage</button></div>
+    </form>
+  </dialog>
+
   <dialog id="detailDialog">
     <div id="detailContent"></div>
   </dialog>
@@ -116,7 +152,8 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=20260815-5" defer></script>
+  <script src="app.js?v=20260815-6" defer></script>
 </body>
 </html>
