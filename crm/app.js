@@ -91,7 +91,13 @@ async function requestMagicLink(event) {
     email,
     options: { shouldCreateUser: false, emailRedirectTo: `${location.origin}/crm/` }
   });
-  showLogin(error ? error.message : "Check your email for the sign-in link.", Boolean(error));
+  const rateLimited = /rate limit/i.test(error?.message || "");
+  const message = rateLimited
+    ? "Use the most recent sign-in link in your email."
+    : error
+      ? "Sign-in link unavailable. Try again shortly."
+      : "Check your email for the sign-in link.";
+  showLogin(message, Boolean(error && !rateLimited));
 }
 
 async function loadState() {
