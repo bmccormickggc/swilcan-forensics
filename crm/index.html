@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Sign in</title>
-  <link rel="stylesheet" href="styles.css?v=20260815-3">
+  <link rel="stylesheet" href="styles.css?v=20260815-4">
 </head>
 <body>
   <section class="auth-screen" id="authScreen">
@@ -30,9 +30,6 @@
       <h1>Outreach CRM</h1>
     </div>
     <div class="topbar-actions">
-      <button class="btn secondary" id="exportBtn">Export backup</button>
-      <button class="btn secondary" id="importBtn">Import</button>
-      <input type="file" id="importFile" accept="application/json" hidden>
       <button class="btn primary" id="addProspectBtn">Add prospect</button>
       <button class="btn secondary" id="signOutBtn">Sign out</button>
     </div>
@@ -45,7 +42,7 @@
 
     <nav class="tabs" aria-label="CRM views">
       <button class="tab active" data-view="pipeline">Pipeline</button>
-      <button class="tab" data-view="review">Candidate review <span class="count" id="reviewCount">0</span></button>
+      <button class="tab" data-view="review">Prospect review <span class="count" id="reviewCount">0</span></button>
       <button class="tab" data-view="actions">Next actions <span class="count" id="actionCount">0</span></button>
     </nav>
 
@@ -60,16 +57,16 @@
 
     <section id="reviewView" class="view">
       <div class="section-heading">
-        <div><p class="eyebrow">Research before outreach</p><h2>Candidate review</h2></div>
-        <button class="btn primary" id="addCandidateBtn">Add candidate</button>
+        <div><p class="eyebrow">Five researched contacts each week</p><h2>Prospect review</h2></div>
+        <button class="btn secondary" id="addCandidateBtn">Add for review</button>
       </div>
-      <p class="section-note">Approve only people who plausibly retain forensic nursing experts. Approval moves the contact into Prospecting; it does not send anything.</p>
+      <p class="section-note">Approve to place a prospect into the draft-only outreach campaign. Decline with a reason so the next research batch improves. Nothing sends automatically.</p>
       <div class="review-grid" id="reviewGrid"></div>
     </section>
 
     <section id="actionsView" class="view">
       <div class="section-heading"><div><p class="eyebrow">Manual review required</p><h2>Next actions</h2></div></div>
-      <p class="section-note">Drafts are generated here. Selena reviews and sends from her Swilcan email. The CRM never sends automatically.</p>
+      <p class="section-note">Short Sandler-style drafts are generated here. Selena or Bill reviews and sends manually. The CRM never sends automatically.</p>
       <div class="action-list" id="actionList"></div>
     </section>
   </main>
@@ -86,8 +83,29 @@
         <label><span>Location</span><input id="location" maxlength="160" placeholder="New York, NY"></label>
         <label><span>Source URL</span><input id="sourceUrl" type="url" maxlength="1000"></label>
       </div>
-      <label class="full"><span id="notesLabel">Notes</span><textarea id="notes" rows="4" maxlength="5000" placeholder="Contact context only. No case details or PHI."></textarea></label>
+      <label class="full"><span>Research context</span><textarea id="researchSummary" rows="4" maxlength="6000" placeholder="Why this person and organization fit. Public professional information only."></textarea></label>
+      <label class="full"><span>Suggested outreach angle</span><textarea id="outreachAngle" rows="3" maxlength="3000" placeholder="A relevant, low-pressure reason to contact this person."></textarea></label>
+      <label class="full"><span id="notesLabel">Operator notes</span><textarea id="notes" rows="3" maxlength="5000" placeholder="Contact-management notes only. No case details or PHI."></textarea></label>
       <div class="dialog-actions"><button class="btn secondary" id="cancelRecordBtn" type="button">Cancel</button><button class="btn primary" id="saveRecordBtn" type="submit">Save</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="declineDialog">
+    <form id="declineForm">
+      <div class="dialog-heading"><div><p class="eyebrow">Prospecting feedback</p><h2>Why decline this prospect?</h2></div><button class="icon-btn" id="closeDeclineBtn" type="button" aria-label="Close">&times;</button></div>
+      <input type="hidden" id="declineCandidateId">
+      <label class="full"><span>Reason *</span><select id="declineReason" required>
+        <option value="">Select a reason</option>
+        <option value="wrong-role">Wrong role or authority</option>
+        <option value="wrong-organization">Organization is not a fit</option>
+        <option value="wrong-geography">Wrong geography</option>
+        <option value="duplicate">Duplicate or already known</option>
+        <option value="weak-evidence">Research evidence is too weak</option>
+        <option value="conflict">Conflict or do-not-contact</option>
+        <option value="other">Other</option>
+      </select></label>
+      <label class="full"><span>Feedback for future prospecting</span><textarea id="declineFeedback" rows="4" maxlength="3000" placeholder="What should the research workflow do differently next time?"></textarea></label>
+      <div class="dialog-actions"><button class="btn secondary" id="cancelDeclineBtn" type="button">Cancel</button><button class="btn danger" type="submit">Decline prospect</button></div>
     </form>
   </dialog>
 
@@ -99,6 +117,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js" integrity="sha384-AkNSQdptcXlJ0/NBZc4qGk86cDVXcCevwoWgEKIpHOEfbvlXGLlIkimQtONt8KNf" crossorigin="anonymous"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=20260815-3" defer></script>
+  <script src="app.js?v=20260815-4" defer></script>
 </body>
 </html>

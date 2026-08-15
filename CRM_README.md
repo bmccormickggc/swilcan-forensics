@@ -6,16 +6,19 @@ authentication and shared persistent storage.
 
 ## Workflow
 
-1. Add researched contacts to Candidate Review.
-2. Selena approves or rejects each candidate. Approval creates a Prospecting
-   card but sends nothing.
-3. Move an approved prospect to Outreach Active and choose a next-action date.
-4. On the due date, review and copy the generated draft. Selena sends it
-   manually from `selena@swilcanforensics.com`.
-5. Mark the message sent. The CRM schedules 7-day, 14-day, and 30-day
-   follow-ups, then closes the record as cold.
-6. A reply moves the record to Conversation. The remaining stages are
-   Qualified, Proposal, and Won.
+1. A scheduled prospecting workflow adds five researched contacts each week
+   and emails Bill and Selena a link to Prospect Review.
+2. Bill or Selena approves or declines each contact. Declines require a reason
+   and retain feedback for subsequent research prompts.
+3. Approval moves the complete research record directly to Outreach Active and
+   makes the first draft due immediately. Nothing sends automatically.
+4. Drafts follow a short Sandler-style cadence: one-sentence initial question,
+   seven-day nudge, then a 30-day close-the-loop/alternate-contact question.
+5. After three non-responses, the workflow requests another entry point at the
+   organization. After three failed entry points, the organization closes cold.
+6. An affirmative reply moves the same record into Conversation with its source,
+   rationale, research, draft history, and activity timeline intact. The
+   remaining stages are Qualified, Proposal, and Won.
 
 The CRM must not contain patient names, case facts, medical records, or PHI.
 
@@ -29,7 +32,8 @@ The CRM must not contain patient names, case facts, medical records, or PHI.
   repository or browser code.
 - Optimistic revision checks prevent one browser from silently overwriting a
   newer save.
-- JSON export/import provides a portable backup.
+- Supabase is the shared system of record; bulk browser import/export is not
+  part of the operating workflow.
 - Supabase JavaScript is version-pinned with Subresource Integrity.
 
 ## Supabase provisioning

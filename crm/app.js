@@ -8,8 +8,8 @@ const STAGES = [
   ["conversation", "Conversation"], ["qualified", "Qualified"],
   ["proposal", "Proposal"], ["won", "Won"]
 ];
-const CADENCE = [0, 7, 14, 30];
-let state = { schemaVersion: 1, revision: 0, prospects: [], candidates: [] };
+const CADENCE = [0, 7, 30];
+let state = { schemaVersion: 2, revision: 0, prospects: [], candidates: [] };
 let localMode = false;
 let supabaseClient = null;
 
@@ -20,6 +20,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
 const addDays = (date, days) => { const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
 const firstName = (name) => String(name || "there").trim().split(/\s+/)[0];
+const activity = (type, summary, details = "") => ({ id: uid(), type, summary, details, at: new Date().toISOString() });
 
 function configIsReady() {
   return /^https:\/\/.+\.supabase\.co$/.test(CONFIG.url || "") &&
@@ -123,7 +124,7 @@ async function saveState() {
     render(); return true;
   }
   const expectedRevision = Number(state.revision || 0);
-  const payload = { schemaVersion: 1, prospects: state.prospects, candidates: state.candidates };
+  const payload = { schemaVersion: 2, prospects: state.prospects, candidates: state.candidates };
   const { data: userData } = await supabaseClient.auth.getUser();
   const { data, error } = await supabaseClient
     .from("crm_state")
@@ -214,7 +215,8 @@ function renderKanban() {
 function cardHtml(p) {
   let due = "";
   if (p.nextActionDate) { const cls = p.nextActionDate < today() ? "late" : p.nextActionDate === today() ? "due" : ""; due = `<span class="pill ${cls}">${p.nextActionDate}</span>`; }
-  return `<article class="prospect-card" draggable="true" data-id="${escapeHtml(p.id)}"><div class="card-title"><h4>${escapeHtml(p.name)}</h4><button class="drag-handle" type="button" aria-label="Move ${escapeHtml(p.name)}" title="Drag to another stage">⋮⋮</button></div><div class="org">${escapeHtml(p.organization)}${p.role ? ` · ${escapeHtml(p.role)}` : ""}</div><div class="meta">${p.location ? `<span class="pill">${escapeHtml(p.location)}</span>` : ""}${due}</div></article>`;
+  const alternate = p.needsAlternateContact ? `<span class="pill late">Alternate contact needed</span>` : "";
+  return `<article class="prospect-card" draggable="true" data-id="${escapeHtml(p.id)}"><div class="card-title"><h4>${escapeHtml(p.name)}</h4><button class="drag-handle" type="button" aria-label="Move ${escapeHtml(p.name)}" title="Drag to another stage">⋮⋮</button></div><div class="org">${escapeHtml(p.organization)}${p.role ? ` · ${escapeHtml(p.role)}` : ""}</div><div class="meta">${p.location ? `<span class="pill">${escapeHtml(p.location)}</span>` : ""}${due}${alternate}</div></article>`;
 }
 
 async function moveProspect(id, targetStage, options = {}) {
@@ -288,7 +290,14 @@ function installPointerDrag(handle) {
 }
 function renderCandidates() {
   const candidates = state.candidates.filter(c => c.reviewStatus === "pending");
-  $("#reviewGrid").innerHTML = candidates.map(c => `<article class="review-card"><h3>${escapeHtml(c.name)}</h3><div class="org">${escapeHtml(c.organization)}${c.role ? ` · ${escapeHtml(c.role)}` : ""}</div>${c.rationale ? `<p>${escapeHtml(c.rationale)}</p>` : ""}<div class="meta">${c.location ? `<span class="pill">${escapeHtml(c.location)}</span>` : ""}</div><div class="review-actions"><button class="btn primary small approve" data-id="${c.id}">Approve</button><button class="btn secondary small edit-candidate" data-id="${c.id}">Edit</button><button class="btn danger small reject" data-id="${c.id}">Reject</button></div></article>`).join("") || `<div class="empty">No candidates waiting for review.</div>`;
+  $("#reviewGrid").innerHTML = candidates.map(c => `<article class="review-card">
+    <div class="review-card-head"><div><h3>${escapeHtml(c.name)}</h3><div class="org">${escapeHtml(c.organization)}${c.role ? ` · ${escapeHtml(c.role)}` : ""}</div></div>${c.confidence ? `<span class="pill">${escapeHtml(c.confidence)}</span>` : ""}</div>
+    ${c.rationale ? `<p><strong>Why this fits:</strong> ${escapeHtml(c.rationale)}</p>` : ""}
+    ${c.researchSummary ? `<p><strong>Research:</strong> ${escapeHtml(c.researchSummary)}</p>` : ""}
+    ${c.outreachAngle ? `<p><strong>Suggested angle:</strong> ${escapeHtml(c.outreachAngle)}</p>` : ""}
+    <div class="meta">${c.location ? `<span class="pill">${escapeHtml(c.location)}</span>` : ""}${c.sourceUrl ? `<a href="${escapeHtml(c.sourceUrl)}" target="_blank" rel="noopener">Source</a>` : ""}</div>
+    <div class="review-actions"><button class="btn primary small approve" data-id="${c.id}">Approve campaign</button><button class="btn secondary small edit-candidate" data-id="${c.id}">Edit</button><button class="btn danger small reject" data-id="${c.id}">Decline</button></div>
+  </article>`).join("") || `<div class="empty">No prospects waiting for review.</div>`;
   $$(".approve").forEach(b => b.onclick = () => approveCandidate(b.dataset.id));
   $$(".reject").forEach(b => b.onclick = () => rejectCandidate(b.dataset.id));
   $$(".edit-candidate").forEach(b => b.onclick = () => openRecord("candidate", b.dataset.id));
@@ -296,7 +305,7 @@ function renderCandidates() {
 function dueProspects() { return state.prospects.filter(p => p.stage === "outreach" && p.nextActionDate && p.nextActionDate <= today()).sort((a,b) => a.nextActionDate.localeCompare(b.nextActionDate)); }
 function renderActions() {
   const rows = dueProspects();
-  $("#actionList").innerHTML = rows.map(p => `<article class="action-card"><div><h3>${escapeHtml(p.name)} · ${escapeHtml(p.organization)}</h3><div class="org">${p.outreachStep === 0 ? "Initial outreach" : `Follow-up ${p.outreachStep}`} due ${escapeHtml(p.nextActionDate)}</div></div><div class="action-actions"><button class="btn primary small draft-btn" data-id="${p.id}">Review draft</button><button class="btn secondary small replied-btn" data-id="${p.id}">They replied</button></div></article>`).join("") || `<div class="empty">No outreach is due today.</div>`;
+  $("#actionList").innerHTML = rows.map(p => `<article class="action-card"><div><h3>${escapeHtml(p.name)} · ${escapeHtml(p.organization)}</h3><div class="org">${p.outreachStep === 0 ? "Initial outreach" : `Follow-up ${p.outreachStep}`} due ${escapeHtml(p.nextActionDate)}</div></div><div class="action-actions"><button class="btn primary small draft-btn" data-id="${p.id}">Review draft</button><button class="btn secondary small replied-btn" data-id="${p.id}">Affirmative reply</button></div></article>`).join("") || `<div class="empty">No outreach is due today.</div>`;
   $$(".draft-btn").forEach(b => b.onclick = () => showDraft(b.dataset.id));
   $$(".replied-btn").forEach(b => b.onclick = () => markReplied(b.dataset.id));
 }
@@ -313,7 +322,9 @@ function openRecord(type, id = "") {
   $("#dialogEyebrow").textContent = id ? "Edit record" : "New record";
   $("#dialogTitle").textContent = `${id ? "Edit" : "Add"} ${type}`;
   [["name","name"],["organization","organization"],["role","role"],["email","email"],["location","location"],["sourceUrl","sourceUrl"]].forEach(([field,key]) => $(`#${field}`).value = row[key] || "");
-  $("#notesLabel").textContent = type === "candidate" ? "Why this candidate fits" : "Notes";
+  $("#researchSummary").value = row.researchSummary || "";
+  $("#outreachAngle").value = row.outreachAngle || "";
+  $("#notesLabel").textContent = type === "candidate" ? "Why this prospect fits" : "Operator notes";
   $("#notes").value = type === "candidate" ? (row.rationale || "") : (row.notes || "");
   $("#recordDialog").showModal();
 }
@@ -324,27 +335,61 @@ async function submitRecord(event) {
   if (!common.name || !common.organization) return;
   if (type === "candidate") {
     const existing = state.candidates.find(c => c.id === id);
-    const row = { ...existing, ...common, rationale: $("#notes").value.trim(), reviewStatus: existing?.reviewStatus || "pending", createdAt: existing?.createdAt || now };
+    const row = { ...existing, ...common, rationale: $("#notes").value.trim(), researchSummary: $("#researchSummary").value.trim(), outreachAngle: $("#outreachAngle").value.trim(), reviewStatus: existing?.reviewStatus || "pending", createdAt: existing?.createdAt || now, updatedAt: now };
     state.candidates = existing ? state.candidates.map(c => c.id === id ? row : c) : [...state.candidates, row];
   } else {
     const existing = state.prospects.find(p => p.id === id);
-    const row = { ...existing, ...common, notes: $("#notes").value.trim(), stage: existing?.stage || "prospect", outreachStep: existing?.outreachStep || 0, nextActionDate: existing?.nextActionDate || "", lastContactDate: existing?.lastContactDate || "", createdAt: existing?.createdAt || now, updatedAt: now };
+    const row = { ...existing, ...common, notes: $("#notes").value.trim(), researchSummary: $("#researchSummary").value.trim(), outreachAngle: $("#outreachAngle").value.trim(), stage: existing?.stage || "prospect", outreachStep: existing?.outreachStep || 0, entryPointAttempt: existing?.entryPointAttempt || 1, nextActionDate: existing?.nextActionDate || "", lastContactDate: existing?.lastContactDate || "", activity: existing?.activity || [], createdAt: existing?.createdAt || now, updatedAt: now };
     state.prospects = existing ? state.prospects.map(p => p.id === id ? row : p) : [...state.prospects, row];
   }
   await saveState(); $("#recordDialog").close(); toast("Saved.");
 }
 async function approveCandidate(id) {
   const c = state.candidates.find(x => x.id === id); if (!c) return;
-  c.reviewStatus = "approved";
-  state.prospects.push({ id: uid(), name:c.name, organization:c.organization, role:c.role, email:c.email, location:c.location, sourceUrl:c.sourceUrl, notes:c.rationale, stage:"prospect", outreachStep:0, nextActionDate:"", lastContactDate:"", createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() });
-  await saveState(); toast("Approved and moved to Prospecting.");
+  const now = new Date().toISOString();
+  c.reviewStatus = "approved"; c.reviewedAt = now;
+  state.prospects.push({
+    id: uid(), candidateId: c.id, name:c.name, organization:c.organization, role:c.role,
+    email:c.email, location:c.location, sourceUrl:c.sourceUrl, notes:"",
+    rationale:c.rationale || "", researchSummary:c.researchSummary || "", outreachAngle:c.outreachAngle || "",
+    prospectingBatchId:c.batchId || c.prospectingBatchId || "manual", stage:"outreach", outreachStep:0,
+    entryPointAttempt:1, nextActionDate:today(), lastContactDate:"",
+    activity:[activity("approved", "Approved for draft-only outreach", c.rationale || "")],
+    createdAt:now, updatedAt:now
+  });
+  await saveState(); toast("Approved. Initial outreach draft is ready.");
 }
-async function rejectCandidate(id) { const c = state.candidates.find(x => x.id === id); if (!c) return; c.reviewStatus = "rejected"; await saveState(); toast("Candidate rejected."); }
+function rejectCandidate(id) {
+  const c = state.candidates.find(x => x.id === id); if (!c) return;
+  $("#declineCandidateId").value = id; $("#declineReason").value = ""; $("#declineFeedback").value = "";
+  $("#declineDialog").showModal();
+}
+async function submitDecline(event) {
+  event.preventDefault();
+  const c = state.candidates.find(x => x.id === $("#declineCandidateId").value); if (!c) return;
+  c.reviewStatus = "rejected"; c.declineReason = $("#declineReason").value;
+  c.declineFeedback = $("#declineFeedback").value.trim(); c.reviewedAt = new Date().toISOString();
+  await saveState(); $("#declineDialog").close(); toast("Declined. Feedback saved for future prospecting.");
+}
 
 function openDetail(id) {
   const p = state.prospects.find(x => x.id === id); if (!p) return;
   const stageOptions = [...STAGES, ["cold","Cold / archived"]].map(([k,v]) => `<option value="${k}" ${p.stage===k?"selected":""}>${v}</option>`).join("");
-  $("#detailContent").innerHTML = `<div class="dialog-heading"><div><p class="eyebrow">Prospect</p><h2>${escapeHtml(p.name)}</h2><div class="org">${escapeHtml(p.organization)}</div></div><button class="icon-btn close-detail">×</button></div><div class="detail-grid"><label class="detail-row"><span>Stage</span><select id="detailStage">${stageOptions}</select></label><label class="detail-row"><span>Next action</span><input id="detailNext" type="date" value="${escapeHtml(p.nextActionDate || "")}"></label><div class="detail-row"><span>Email</span><div class="detail-value">${escapeHtml(p.email || "—")}</div></div><div class="detail-row"><span>Location</span><div class="detail-value">${escapeHtml(p.location || "—")}</div></div><div class="detail-row full"><span>Notes</span><div class="detail-value">${escapeHtml(p.notes || "—")}</div></div></div><div class="dialog-actions"><button class="btn danger" id="deleteProspect">Delete</button><button class="btn secondary" id="editProspect">Edit</button><button class="btn primary" id="saveDetail">Save changes</button></div>`;
+  const timeline = (p.activity || []).slice().reverse().map(item => `<li><strong>${escapeHtml(item.summary)}</strong><span>${escapeHtml(String(item.at || "").slice(0,10))}</span>${item.details ? `<p>${escapeHtml(item.details)}</p>` : ""}</li>`).join("") || `<li>No activity recorded yet.</li>`;
+  $("#detailContent").innerHTML = `<div class="dialog-heading"><div><p class="eyebrow">Prospect record</p><h2>${escapeHtml(p.name)}</h2><div class="org">${escapeHtml(p.organization)}${p.role ? ` · ${escapeHtml(p.role)}` : ""}</div></div><button class="icon-btn close-detail">&times;</button></div>
+  <div class="detail-grid">
+    <label class="detail-row"><span>Stage</span><select id="detailStage">${stageOptions}</select></label>
+    <label class="detail-row"><span>Next action</span><input id="detailNext" type="date" value="${escapeHtml(p.nextActionDate || "")}"></label>
+    <div class="detail-row"><span>Email</span><div class="detail-value">${escapeHtml(p.email || "—")}</div></div>
+    <div class="detail-row"><span>Location</span><div class="detail-value">${escapeHtml(p.location || "—")}</div></div>
+    <div class="detail-row"><span>Campaign</span><div class="detail-value">Entry point ${escapeHtml(p.entryPointAttempt || 1)} · message ${escapeHtml((p.outreachStep || 0) + 1)} of 3</div></div>
+    <div class="detail-row"><span>Source</span><div class="detail-value">${p.sourceUrl ? `<a href="${escapeHtml(p.sourceUrl)}" target="_blank" rel="noopener">Open research source</a>` : "—"}</div></div>
+    <div class="detail-row full"><span>Why this prospect</span><div class="detail-value prewrap">${escapeHtml(p.rationale || "—")}</div></div>
+    <div class="detail-row full"><span>Research context</span><div class="detail-value prewrap">${escapeHtml(p.researchSummary || "—")}</div></div>
+    <div class="detail-row full"><span>Suggested outreach angle</span><div class="detail-value prewrap">${escapeHtml(p.outreachAngle || "—")}</div></div>
+    <div class="detail-row full"><span>Operator notes</span><div class="detail-value prewrap">${escapeHtml(p.notes || "—")}</div></div>
+    <div class="detail-row full"><span>Activity history</span><ol class="activity-list">${timeline}</ol></div>
+  </div><div class="dialog-actions"><button class="btn danger" id="deleteProspect">Delete</button><button class="btn secondary" id="editProspect">Edit</button><button class="btn primary" id="saveDetail">Save changes</button></div>`;
   $("#detailDialog").showModal(); $(".close-detail").onclick = () => $("#detailDialog").close();
   $("#editProspect").onclick = () => { $("#detailDialog").close(); openRecord("prospect", id); };
   $("#saveDetail").onclick = async () => {
@@ -357,28 +402,34 @@ function openDetail(id) {
   $("#deleteProspect").onclick = async () => { if (!confirm(`Delete ${p.name}?`)) return; state.prospects=state.prospects.filter(x=>x.id!==id); await saveState(); $("#detailDialog").close(); toast("Deleted."); };
 }
 function draftFor(p) {
-  if (p.outreachStep === 0) return `Subject: Forensic nursing expertise\n\nHey ${firstName(p.name)} –\n\nQuick question: does your office ever use forensic nursing experts for medical-record review, case consultation, or testimony in sexual assault, strangulation, child maltreatment, or domestic violence matters?\n\nI am a board-certified forensic nurse with prosecution and defense experience. If it would be useful, I would be glad to have a brief introductory call and learn how your office handles these matters.\n\nThanks,\nSelena McCormick\nSwilcan Forensics`;
-  if (p.outreachStep === 1) return `Subject: Re: Forensic nursing expertise\n\nHey ${firstName(p.name)} –\n\nJust bringing this back to the top of your inbox. Does your office ever have a need for outside forensic nursing review, consultation, or testimony?\n\nThanks,\nSelena`;
-  if (p.outreachStep === 2) return `Subject: Re: Forensic nursing expertise\n\nHey ${firstName(p.name)} –\n\nOne final follow-up in case forensic nursing support is relevant to your office now or later. I would be glad to make myself available for a short introductory call.\n\nThanks,\nSelena`;
-  return `Subject: Re: Forensic nursing expertise\n\nHey ${firstName(p.name)} –\n\nI will close the loop after this note. If a future matter calls for independent forensic nursing review or testimony, my information is at swilcanforensics.com.\n\nThanks,\nSelena`;
+  if (p.outreachStep === 0) return `Subject: Quick question\n\nHey ${firstName(p.name)} –\n\nDo you ever run into matters where an independent forensic nurse could help with expert review or testimony?\n\nThanks,\nSelena`;
+  if (p.outreachStep === 1) return `Subject: Re: Quick question\n\nHey ${firstName(p.name)} –\n\nJust a quick nudge. Is that ever something your office needs, or not really?\n\nThanks,\nSelena`;
+  return `Subject: Re: Quick question\n\nHey ${firstName(p.name)} –\n\nShould I close the loop, or is there someone else in your office I should speak with about forensic nursing expertise?\n\nThanks,\nSelena`;
 }
 function showDraft(id) {
   const p = state.prospects.find(x => x.id === id); if (!p) return;
   $("#detailContent").innerHTML = `<div class="dialog-heading"><div><p class="eyebrow">Draft only</p><h2>${p.outreachStep===0?"Initial outreach":`Follow-up ${p.outreachStep}`}</h2><div class="org">${escapeHtml(p.name)} · ${escapeHtml(p.organization)}</div></div><button class="icon-btn close-detail">×</button></div><div class="draft" id="draftText">${escapeHtml(draftFor(p))}</div><div class="dialog-actions"><button class="btn secondary" id="copyDraft">Copy draft</button><button class="btn primary" id="markSent">Mark sent manually</button></div>`;
   $("#detailDialog").showModal(); $(".close-detail").onclick=()=>$("#detailDialog").close();
   $("#copyDraft").onclick=async()=>{ await navigator.clipboard.writeText(draftFor(p)); toast("Draft copied."); };
-  $("#markSent").onclick=async()=>{ p.lastContactDate=today(); if(p.outreachStep>=3){p.stage="cold";p.nextActionDate="";}else{p.outreachStep+=1;p.nextActionDate=addDays(today(),CADENCE[p.outreachStep]);}p.updatedAt=new Date().toISOString();await saveState();$("#detailDialog").close();toast(p.stage==="cold"?"Closed as cold.":`Next follow-up scheduled for ${p.nextActionDate}.`);};
+  $("#markSent").onclick=async()=>{
+    p.lastContactDate=today(); p.activity = p.activity || [];
+    p.activity.push(activity("draft-sent", `${p.outreachStep===0?"Initial outreach":`Follow-up ${p.outreachStep}`} marked sent`, draftFor(p)));
+    if(p.outreachStep>=2){
+      if((p.entryPointAttempt || 1) >= 3){ p.stage="cold"; p.nextActionDate=""; p.needsAlternateContact=false; p.activity.push(activity("campaign-closed","Closed after three entry points without a response")); }
+      else { p.stage="prospect"; p.nextActionDate=""; p.needsAlternateContact=true; p.entryPointAttempt=(p.entryPointAttempt || 1)+1; p.outreachStep=0; p.activity.push(activity("alternate-needed","Alternate entry point requested","Research another relevant contact at the same organization.")); }
+    } else { p.outreachStep+=1; p.nextActionDate=addDays(today(),CADENCE[p.outreachStep]); }
+    p.updatedAt=new Date().toISOString(); await saveState(); $("#detailDialog").close();
+    toast(p.stage==="cold"?"Closed as cold.":p.needsAlternateContact?"Queued for an alternate contact.":`Next follow-up scheduled for ${p.nextActionDate}.`);
+  };
 }
-async function markReplied(id) { const p=state.prospects.find(x=>x.id===id);if(!p)return;p.stage="conversation";p.nextActionDate="";p.updatedAt=new Date().toISOString();await saveState();toast("Moved to Conversation."); }
-function exportData() { const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`swilcan-crm-backup-${today()}.json`;a.click();URL.revokeObjectURL(a.href); }
-async function importData(file) { try { const incoming=JSON.parse(await file.text()); if(!Array.isArray(incoming.prospects)||!Array.isArray(incoming.candidates)) throw new Error(); if(!confirm("Replace current CRM data with this backup?"))return; state={...state,prospects:incoming.prospects,candidates:incoming.candidates};await saveState();toast("Backup imported."); } catch { toast("That file is not a valid CRM backup.",true); } }
+async function markReplied(id) { const p=state.prospects.find(x=>x.id===id);if(!p)return;p.stage="conversation";p.nextActionDate="";p.needsAlternateContact=false;p.activity=p.activity||[];p.activity.push(activity("reply","Affirmative reply recorded; moved to active CRM"));p.updatedAt=new Date().toISOString();await saveState();toast("Moved to Conversation with full prospecting history."); }
 function toast(message,error=false){const el=$("#toast");el.textContent=message;el.className=`toast show${error?" error":""}`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.className="toast",3200);}
 
 $$('.tab').forEach(t=>t.onclick=()=>switchView(t.dataset.view));
 $("#addProspectBtn").onclick=()=>openRecord("prospect"); $("#addCandidateBtn").onclick=()=>openRecord("candidate");
 $("#recordForm").addEventListener("submit",submitRecord); $("#searchInput").addEventListener("input",renderKanban); $("#locationFilter").addEventListener("change",renderKanban);
 $("#closeRecordBtn").onclick=()=>$("#recordDialog").close(); $("#cancelRecordBtn").onclick=()=>$("#recordDialog").close();
-$("#exportBtn").onclick=exportData; $("#importBtn").onclick=()=>$("#importFile").click(); $("#importFile").onchange=e=>e.target.files[0]&&importData(e.target.files[0]);
+$("#declineForm").addEventListener("submit",submitDecline); $("#closeDeclineBtn").onclick=()=>$("#declineDialog").close(); $("#cancelDeclineBtn").onclick=()=>$("#declineDialog").close();
 $("#loginForm").addEventListener("submit", requestMagicLink);
 $("#signOutBtn").onclick=async()=>{ if(localMode){localStorage.removeItem("swilcan-crm-preview");location.reload();return;}await supabaseClient.auth.signOut(); };
 initializeAuth();

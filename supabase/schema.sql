@@ -5,7 +5,7 @@
 create table if not exists public.crm_state (
   id smallint primary key default 1 check (id = 1),
   revision bigint not null default 0 check (revision >= 0),
-  payload jsonb not null default '{"schemaVersion":1,"prospects":[],"candidates":[]}'::jsonb
+  payload jsonb not null default '{"schemaVersion":2,"prospects":[],"candidates":[]}'::jsonb
     check (jsonb_typeof(payload) = 'object'),
   updated_at timestamptz not null default now(),
   updated_by uuid references auth.users(id)
