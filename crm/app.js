@@ -311,7 +311,7 @@ function renderCandidates() {
     ${c.researchSummary ? `<p><strong>Research:</strong> ${escapeHtml(c.researchSummary)}</p>` : ""}
     ${c.outreachAngle ? `<p><strong>Suggested angle:</strong> ${escapeHtml(c.outreachAngle)}</p>` : ""}
     <div class="meta">${c.location ? `<span class="pill">${escapeHtml(c.location)}</span>` : ""}${c.sourceUrl ? `<a href="${escapeHtml(c.sourceUrl)}" target="_blank" rel="noopener">Source</a>` : ""}</div>
-    <div class="review-actions"><button class="btn primary small approve" data-id="${c.id}">Approve campaign</button><button class="btn secondary small edit-candidate" data-id="${c.id}">Edit</button><button class="btn danger small reject" data-id="${c.id}">Decline</button></div>
+    <div class="review-actions"><button type="button" class="btn primary small approve" data-id="${c.id}">Approve campaign</button><button type="button" class="btn secondary small edit-candidate" data-id="${c.id}">Edit</button><button type="button" class="btn danger small reject" data-id="${c.id}">Decline</button></div>
   </article>`).join("") || `<div class="empty">No prospects waiting for review.</div>`;
   $$(".approve").forEach(b => b.onclick = () => approveCandidate(b.dataset.id));
   $$(".reject").forEach(b => b.onclick = () => rejectCandidate(b.dataset.id));
@@ -377,14 +377,51 @@ async function approveCandidate(id) {
 function rejectCandidate(id) {
   const c = state.candidates.find(x => x.id === id); if (!c) return;
   $("#declineCandidateId").value = id; $("#declineReason").value = ""; $("#declineFeedback").value = "";
-  $("#declineDialog").showModal();
+  const dialog = $("#declineDialog");
+  if (!dialog.open) dialog.showModal();
 }
 async function submitDecline(event) {
   event.preventDefault();
-  const c = state.candidates.find(x => x.id === $("#declineCandidateId").value); if (!c) return;
-  c.reviewStatus = "rejected"; c.declineReason = $("#declineReason").value;
-  c.declineFeedback = $("#declineFeedback").value.trim(); c.reviewedAt = new Date().toISOString();
-  await saveState(); $("#declineDialog").close(); toast("Declined. Feedback saved for future prospecting.");
+  const id = $("#declineCandidateId").value;
+  const reason = $("#declineReason").value;
+  const feedback = $("#declineFeedback").value.trim();
+  const c = state.candidates.find(x => x.id === id);
+  if (!c || !reason) return;
+  const submit = $("#confirmDeclineBtn");
+  submit.disabled = true;
+  submit.setAttribute("aria-busy", "true");
+  try {
+    const now = new Date().toISOString();
+    if (localMode) {
+      c.reviewStatus = "rejected"; c.declineReason = reason; c.declineFeedback = feedback;
+      c.reviewedAt = now; c.archivedAt = now; c.updatedAt = now;
+      if (!await saveState()) return;
+    } else {
+      const expectedRevision = Number(state.revision || 0);
+      const { data, error } = await supabaseClient.rpc("crm_decline_candidate", {
+        p_candidate_id: id,
+        p_reason: reason,
+        p_feedback: feedback,
+        p_expected_revision: expectedRevision
+      });
+      if (error) {
+        if (/revision conflict/i.test(error.message || "")) await loadState();
+        throw new Error(error.message);
+      }
+      if (!data?.payload || Number(data.revision) !== expectedRevision + 1) {
+        throw new Error("Decline was not confirmed by the CRM");
+      }
+      state = normalizeState({ ...data.payload, revision: Number(data.revision), updatedAt: data.updatedAt });
+      render();
+    }
+    $("#declineDialog").close();
+    toast("Declined and archived. Feedback saved for future prospecting.");
+  } catch (error) {
+    toast(`Could not decline prospect: ${error.message}`, true);
+  } finally {
+    submit.disabled = false;
+    submit.removeAttribute("aria-busy");
+  }
 }
 
 function openProposalGate(id) {
