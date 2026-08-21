@@ -8,6 +8,7 @@ const STAGES = [
   ["proposal", "Proposal"], ["won", "Won"]
 ];
 const CADENCE = [0, 7, 30];
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PROPOSAL_TEMPLATE_VERSION = "2026-02-22-barnes";
 let state = { schemaVersion: 2, revision: 0, prospects: [], candidates: [] };
 let localMode = false;
@@ -157,7 +158,7 @@ async function saveState() {
   return true;
 }
 
-function render() { renderCounts(); renderMetrics(); renderFilters(); renderKanban(); renderCandidates(); renderActions(); }
+function render() { renderCounts(); renderMetrics(); renderFilters(); renderKanban(); renderCandidates(); renderActions(); void ensureDueMailboxDrafts(); }
 function renderCounts() {
   $("#reviewCount").textContent = state.candidates.filter(c => c.reviewStatus === "pending").length;
   $("#actionCount").textContent = dueProspects().length;
@@ -310,8 +311,8 @@ function renderCandidates() {
     ${c.rationale ? `<p><strong>Why this fits:</strong> ${escapeHtml(c.rationale)}</p>` : ""}
     ${c.researchSummary ? `<p><strong>Research:</strong> ${escapeHtml(c.researchSummary)}</p>` : ""}
     ${c.outreachAngle ? `<p><strong>Suggested angle:</strong> ${escapeHtml(c.outreachAngle)}</p>` : ""}
-    <div class="meta">${c.location ? `<span class="pill">${escapeHtml(c.location)}</span>` : ""}${c.sourceUrl ? `<a href="${escapeHtml(c.sourceUrl)}" target="_blank" rel="noopener">Source</a>` : ""}</div>
-    <div class="review-actions"><button type="button" class="btn primary small approve" data-id="${c.id}">Approve campaign</button><button type="button" class="btn secondary small edit-candidate" data-id="${c.id}">Edit</button><button type="button" class="btn danger small reject" data-id="${c.id}">Decline</button></div>
+    <div class="meta">${c.location ? `<span class="pill">${escapeHtml(c.location)}</span>` : ""}${c.email ? `<a href="mailto:${escapeHtml(c.email)}">${escapeHtml(c.email)}</a>` : `<span class="pill late">Verified email required</span>`}${c.sourceUrl ? `<a href="${escapeHtml(c.sourceUrl)}" target="_blank" rel="noopener">Fit source</a>` : ""}${c.emailSourceUrl ? `<a href="${escapeHtml(c.emailSourceUrl)}" target="_blank" rel="noopener">Email source</a>` : ""}</div>
+    <div class="review-actions"><button type="button" class="btn primary small approve" data-id="${c.id}" ${EMAIL_PATTERN.test(String(c.email || "").trim()) && /^https:\/\//i.test(String(c.emailSourceUrl || "")) ? "" : 'disabled title="Add a verified public business email and its public source before approval"'}>Approve</button><button type="button" class="btn secondary small edit-candidate" data-id="${c.id}">Edit</button><button type="button" class="btn danger small reject" data-id="${c.id}">Decline</button></div>
   </article>`).join("") || `<div class="empty">No prospects waiting for review.</div>`;
   $$(".approve").forEach(b => b.onclick = () => approveCandidate(b.dataset.id));
   $$(".reject").forEach(b => b.onclick = () => rejectCandidate(b.dataset.id));
@@ -336,7 +337,7 @@ function openRecord(type, id = "") {
   $("#recordType").value = type; $("#recordId").value = id;
   $("#dialogEyebrow").textContent = id ? "Edit record" : "New record";
   $("#dialogTitle").textContent = `${id ? "Edit" : "Add"} ${type}`;
-  [["name","name"],["organization","organization"],["role","role"],["email","email"],["location","location"],["sourceUrl","sourceUrl"]].forEach(([field,key]) => $(`#${field}`).value = row[key] || "");
+  [["name","name"],["organization","organization"],["role","role"],["email","email"],["emailSourceUrl","emailSourceUrl"],["location","location"],["sourceUrl","sourceUrl"]].forEach(([field,key]) => $(`#${field}`).value = row[key] || "");
   $("#researchSummary").value = row.researchSummary || "";
   $("#outreachAngle").value = row.outreachAngle || "";
   $("#notesLabel").textContent = type === "candidate" ? "Why this prospect fits" : "Operator notes";
@@ -346,8 +347,11 @@ function openRecord(type, id = "") {
 async function submitRecord(event) {
   event.preventDefault();
   const type = $("#recordType").value, id = $("#recordId").value || uid(), now = new Date().toISOString();
-  const common = { id, name: $("#name").value.trim(), organization: $("#organization").value.trim(), role: $("#role").value.trim(), email: $("#email").value.trim(), location: $("#location").value.trim(), sourceUrl: $("#sourceUrl").value.trim() };
+  const common = { id, name: $("#name").value.trim(), organization: $("#organization").value.trim(), role: $("#role").value.trim(), email: $("#email").value.trim(), emailSourceUrl: $("#emailSourceUrl").value.trim(), location: $("#location").value.trim(), sourceUrl: $("#sourceUrl").value.trim() };
   if (!common.name || !common.organization) return;
+  if (type === "candidate" && (!EMAIL_PATTERN.test(common.email) || !/^https:\/\//i.test(common.emailSourceUrl) || !/^https:\/\//i.test(common.sourceUrl))) {
+    return toast("A verified public business email, email source, and fit source are required.", true);
+  }
   if (type === "candidate") {
     const existing = state.candidates.find(c => c.id === id);
     const row = { ...existing, ...common, rationale: $("#notes").value.trim(), researchSummary: $("#researchSummary").value.trim(), outreachAngle: $("#outreachAngle").value.trim(), reviewStatus: existing?.reviewStatus || "pending", createdAt: existing?.createdAt || now, updatedAt: now };
@@ -361,18 +365,61 @@ async function submitRecord(event) {
 }
 async function approveCandidate(id) {
   const c = state.candidates.find(x => x.id === id); if (!c) return;
+  if (!EMAIL_PATTERN.test(String(c.email || "").trim()) || !/^https:\/\//i.test(String(c.emailSourceUrl || "").trim()) || !/^https:\/\//i.test(String(c.sourceUrl || "").trim())) {
+    return toast("Add the verified public business email and its source before approval.", true);
+  }
   const now = new Date().toISOString();
   c.reviewStatus = "approved"; c.reviewedAt = now;
-  state.prospects.push({
+  const prospect = {
     id: uid(), candidateId: c.id, name:c.name, organization:c.organization, role:c.role,
-    email:c.email, location:c.location, sourceUrl:c.sourceUrl, notes:"",
+    email:c.email, emailSourceUrl:c.emailSourceUrl, location:c.location, sourceUrl:c.sourceUrl, notes:"",
     rationale:c.rationale || "", researchSummary:c.researchSummary || "", outreachAngle:c.outreachAngle || "",
+    initialDraft:c.initialDraft || "", followupDraft1:c.followupDraft1 || "", followupDraft2:c.followupDraft2 || "",
     prospectingBatchId:c.batchId || c.prospectingBatchId || "manual", stage:"prospect", outreachStep:0,
-    entryPointAttempt:1, nextActionDate:today(), lastContactDate:"",
+    entryPointAttempt:1, nextActionDate:today(), lastContactDate:"", mailboxDraftStatus:"pending", mailboxDraftStep:-1,
     activity:[activity("approved", "Approved for draft-only outreach", c.rationale || "")],
     createdAt:now, updatedAt:now
-  });
-  await saveState(); toast("Approved. Initial outreach draft is ready.");
+  };
+  state.prospects.push(prospect);
+  if (!await saveState()) return;
+  await createMailboxDraft(prospect, true);
+}
+
+const drafting = new Set();
+async function createMailboxDraft(prospect, announce = false) {
+  if (localMode || !CONFIG.draftServiceUrl || drafting.has(prospect.id) || prospect.mailboxDraftStep === prospect.outreachStep) return;
+  drafting.add(prospect.id);
+  try {
+    const { data } = await supabaseClient.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) throw new Error("CRM session expired");
+    const response = await fetch(CONFIG.draftServiceUrl, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ candidateId: prospect.candidateId, step: prospect.outreachStep, threadId: prospect.gmailThreadId || "" })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || `Draft service failed (${response.status})`);
+    prospect.mailboxDraftStatus = "ready";
+    prospect.mailboxDraftStep = prospect.outreachStep;
+    prospect.mailboxDraftedAt = new Date().toISOString();
+    if (result.threadId) prospect.gmailThreadId = result.threadId;
+    prospect.activity = prospect.activity || [];
+    prospect.activity.push(activity("mailbox-draft", `${prospect.outreachStep === 0 ? "Initial outreach" : `Follow-up ${prospect.outreachStep}`} created in Selena's Drafts`, result.existing ? "Existing draft reused" : "New unsent draft"));
+    await saveState();
+    if (announce) toast("Approved and drafted in Selena's Swilcan mailbox.");
+  } catch (error) {
+    prospect.mailboxDraftStatus = "error";
+    prospect.mailboxDraftError = String(error.message || error);
+    await saveState();
+    if (announce) toast(`Approved and added to the pipeline, but mailbox drafting failed: ${prospect.mailboxDraftError}`, true);
+  } finally { drafting.delete(prospect.id); }
+}
+
+async function ensureDueMailboxDrafts() {
+  for (const prospect of dueProspects()) {
+    if (prospect.mailboxDraftStep !== prospect.outreachStep) await createMailboxDraft(prospect);
+  }
 }
 function rejectCandidate(id) {
   const c = state.candidates.find(x => x.id === id); if (!c) return;
@@ -595,7 +642,7 @@ function showDraft(id) {
     if(p.outreachStep>=2){
       if((p.entryPointAttempt || 1) >= 3){ p.stage="cold"; p.nextActionDate=""; p.needsAlternateContact=false; p.activity.push(activity("campaign-closed","Closed after three entry points without a response")); }
       else { p.stage="prospect"; p.nextActionDate=""; p.needsAlternateContact=true; p.entryPointAttempt=(p.entryPointAttempt || 1)+1; p.outreachStep=0; p.activity.push(activity("alternate-needed","Alternate entry point requested","Research another relevant contact at the same organization.")); }
-    } else { p.outreachStep+=1; p.nextActionDate=addDays(today(),CADENCE[p.outreachStep]); }
+    } else { p.outreachStep+=1; p.nextActionDate=addDays(today(),CADENCE[p.outreachStep]); p.mailboxDraftStatus="scheduled"; }
     p.updatedAt=new Date().toISOString(); await saveState(); $("#detailDialog").close();
     toast(p.stage==="cold"?"Closed as cold.":p.needsAlternateContact?"Queued for an alternate contact.":`Next follow-up scheduled for ${p.nextActionDate}.`);
   };

@@ -10,10 +10,12 @@ authentication and shared persistent storage.
    and emails Bill and Selena a link to Prospect Review.
 2. Bill or Selena approves or declines each contact. Declines require a reason
    and retain feedback for subsequent research prompts.
-3. Approval moves the complete research record directly into Prospecting and
-   makes the first draft due immediately. Nothing sends automatically.
+3. Approval requires a sourced public business email, moves the complete
+   research record into Prospecting, and creates an unsent draft in Selena's
+   verified Swilcan Google Workspace mailbox. Nothing sends automatically.
 4. Drafts follow a short Sandler-style cadence: one-sentence initial question,
    seven-day nudge, then a 30-day close-the-loop/alternate-contact question.
+   Due drafts are created when the authenticated CRM is opened; sends remain manual.
 5. After three non-responses, the workflow requests another entry point at the
    organization. After three failed entry points, the organization closes cold.
 6. An affirmative reply moves the same record into In Conversation with its source,
@@ -24,9 +26,9 @@ authentication and shared persistent storage.
    attaches the completed proposal data to the CRM record, and generates a PDF.
    The proposal includes the standard scope, adjustable rates and cancellation
    terms, payment terms, liability language, and signature acceptance blocks.
-8. Customer delivery remains draft-only. A real draft in Selena's mailbox must
-   not be enabled until that mailbox is connected and verified; the CRM never
-   sends a proposal automatically.
+8. Customer delivery remains draft-only. The authenticated n8n draft service
+   uses the Google credential connected as `selena@swilcanforensics.com` and
+   exposes no Gmail send operation. Follow-up drafts retain the Gmail thread ID.
 
 The CRM must not contain patient names, case facts, medical records, or PHI.
 
