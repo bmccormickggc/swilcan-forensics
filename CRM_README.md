@@ -10,6 +10,9 @@ authentication and shared persistent storage.
    and emails Bill and Selena a link to Prospect Review.
 2. Bill or Selena approves or declines each contact. Declines require a reason
    and retain feedback for subsequent research prompts.
+   Only one attorney per firm may be pending or in an active workflow. Another
+   attorney at that firm becomes eligible only after the prior attorney finishes
+   the complete non-response cadence and the CRM requests an alternate contact.
 3. Approval requires a sourced public business email, moves the complete
    research record into Prospecting, and creates an unsent draft in Selena's
    verified Swilcan Google Workspace mailbox. Nothing sends automatically.

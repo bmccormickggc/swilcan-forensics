@@ -22,6 +22,22 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>'"]/g, c => ({"&"
 const addDays = (date, days) => { const d = new Date(`${date}T12:00:00`); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
 const firstName = (name) => String(name || "there").trim().split(/\s+/)[0];
 const activity = (type, summary, details = "") => ({ id: uid(), type, summary, details, at: new Date().toISOString() });
+const firmKey = (value) => String(value || "").trim().toLowerCase()
+  .replace(/&/g, " and ")
+  .replace(/[^a-z0-9]+/g, " ")
+  .replace(/\b(and|l\s*l\s*p|l\s*l\s*c|p\s*l\s*l\s*c|p\s*c|p\s*a|law firm|law offices|the)\b/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+const prospectBlocksFirm = (prospect) => prospect.stage !== "cold" && !prospect.needsAlternateContact;
+
+function firmBlocker(organization, candidateId = "") {
+  const key = firmKey(organization);
+  if (!key) return null;
+  const prospect = state.prospects.find(row => firmKey(row.organization) === key && prospectBlocksFirm(row));
+  if (prospect) return { type: "prospect", name: prospect.name };
+  const candidate = state.candidates.find(row => row.id !== candidateId && row.reviewStatus === "pending" && firmKey(row.organization) === key);
+  return candidate ? { type: "candidate", name: candidate.name } : null;
+}
 const normalizeState = incoming => ({
   ...incoming,
   schemaVersion: 2,
@@ -312,7 +328,7 @@ function renderCandidates() {
     ${c.researchSummary ? `<p><strong>Research:</strong> ${escapeHtml(c.researchSummary)}</p>` : ""}
     ${c.outreachAngle ? `<p><strong>Suggested angle:</strong> ${escapeHtml(c.outreachAngle)}</p>` : ""}
     <div class="meta">${c.location ? `<span class="pill">${escapeHtml(c.location)}</span>` : ""}${c.email ? `<a href="mailto:${escapeHtml(c.email)}">${escapeHtml(c.email)}</a>` : `<span class="pill late">Verified email required</span>`}${c.sourceUrl ? `<a href="${escapeHtml(c.sourceUrl)}" target="_blank" rel="noopener">Fit source</a>` : ""}${c.emailSourceUrl ? `<a href="${escapeHtml(c.emailSourceUrl)}" target="_blank" rel="noopener">Email source</a>` : ""}</div>
-    <div class="review-actions"><button type="button" class="btn primary small approve" data-id="${c.id}" ${EMAIL_PATTERN.test(String(c.email || "").trim()) && /^https:\/\//i.test(String(c.emailSourceUrl || "")) ? "" : 'disabled title="Add a verified public business email and its public source before approval"'}>Approve</button><button type="button" class="btn secondary small edit-candidate" data-id="${c.id}">Edit</button><button type="button" class="btn danger small reject" data-id="${c.id}">Decline</button></div>
+    <div class="review-actions"><button type="button" class="btn primary small approve" data-id="${c.id}" ${firmBlocker(c.organization, c.id) ? `disabled title="Another attorney at this firm is still active"` : EMAIL_PATTERN.test(String(c.email || "").trim()) && /^https:\/\//i.test(String(c.emailSourceUrl || "")) ? "" : 'disabled title="Add a verified public business email and its public source before approval"'}>Approve</button><button type="button" class="btn secondary small edit-candidate" data-id="${c.id}">Edit</button><button type="button" class="btn danger small reject" data-id="${c.id}">Decline</button></div>
   </article>`).join("") || `<div class="empty">No prospects waiting for review.</div>`;
   $$(".approve").forEach(b => b.onclick = () => approveCandidate(b.dataset.id));
   $$(".reject").forEach(b => b.onclick = () => rejectCandidate(b.dataset.id));
@@ -353,6 +369,8 @@ async function submitRecord(event) {
     return toast("A verified public business email, email source, and fit source are required.", true);
   }
   if (type === "candidate") {
+    const blocker = firmBlocker(common.organization, id);
+    if (blocker) return toast(`${blocker.name} is already active at this firm. Finish that workflow before adding another attorney.`, true);
     const existing = state.candidates.find(c => c.id === id);
     const row = { ...existing, ...common, rationale: $("#notes").value.trim(), researchSummary: $("#researchSummary").value.trim(), outreachAngle: $("#outreachAngle").value.trim(), reviewStatus: existing?.reviewStatus || "pending", createdAt: existing?.createdAt || now, updatedAt: now };
     state.candidates = existing ? state.candidates.map(c => c.id === id ? row : c) : [...state.candidates, row];
@@ -365,6 +383,8 @@ async function submitRecord(event) {
 }
 async function approveCandidate(id) {
   const c = state.candidates.find(x => x.id === id); if (!c) return;
+  const blocker = firmBlocker(c.organization, c.id);
+  if (blocker) return toast(`${blocker.name} is already active at this firm. Finish that workflow before approving another attorney.`, true);
   if (!EMAIL_PATTERN.test(String(c.email || "").trim()) || !/^https:\/\//i.test(String(c.emailSourceUrl || "").trim()) || !/^https:\/\//i.test(String(c.sourceUrl || "").trim())) {
     return toast("Add the verified public business email and its source before approval.", true);
   }
@@ -425,6 +445,7 @@ function rejectCandidate(id) {
   const c = state.candidates.find(x => x.id === id); if (!c) return;
   $("#declineCandidateId").value = id; $("#declineReason").value = ""; $("#declineFeedback").value = "";
   const dialog = $("#declineDialog");
+  $("#declineStatus").textContent = "";
   if (!dialog.open) dialog.showModal();
 }
 async function submitDecline(event) {
@@ -437,6 +458,7 @@ async function submitDecline(event) {
   const submit = $("#confirmDeclineBtn");
   submit.disabled = true;
   submit.setAttribute("aria-busy", "true");
+  $("#declineStatus").textContent = "Declining prospect...";
   try {
     const now = new Date().toISOString();
     if (localMode) {
@@ -453,17 +475,27 @@ async function submitDecline(event) {
       });
       if (error) {
         if (/revision conflict/i.test(error.message || "")) await loadState();
-        throw new Error(error.message);
+        else {
+          c.reviewStatus = "rejected"; c.declineReason = reason; c.declineFeedback = feedback;
+          c.reviewedAt = now; c.archivedAt = now; c.updatedAt = now;
+          if (!await saveState()) {
+            const latest = state.candidates.find(row => row.id === id);
+            if (latest?.reviewStatus !== "rejected") throw new Error(error.message);
+          }
+        }
+      } else {
+        if (!data?.payload || Number(data.revision) !== expectedRevision + 1) {
+          throw new Error("Decline was not confirmed by the CRM");
+        }
+        state = normalizeState({ ...data.payload, revision: Number(data.revision), updatedAt: data.updatedAt });
+        render();
       }
-      if (!data?.payload || Number(data.revision) !== expectedRevision + 1) {
-        throw new Error("Decline was not confirmed by the CRM");
-      }
-      state = normalizeState({ ...data.payload, revision: Number(data.revision), updatedAt: data.updatedAt });
-      render();
     }
+    $("#declineStatus").textContent = "";
     $("#declineDialog").close();
     toast("Declined and archived. Feedback saved for future prospecting.");
   } catch (error) {
+    $("#declineStatus").textContent = `Could not decline: ${error.message}`;
     toast(`Could not decline prospect: ${error.message}`, true);
   } finally {
     submit.disabled = false;
@@ -654,7 +686,7 @@ $$('.tab').forEach(t=>t.onclick=()=>switchView(t.dataset.view));
 $("#addProspectBtn").onclick=()=>openRecord("prospect"); $("#addCandidateBtn").onclick=()=>openRecord("candidate");
 $("#recordForm").addEventListener("submit",submitRecord); $("#searchInput").addEventListener("input",renderKanban); $("#locationFilter").addEventListener("change",renderKanban);
 $("#closeRecordBtn").onclick=()=>$("#recordDialog").close(); $("#cancelRecordBtn").onclick=()=>$("#recordDialog").close();
-$("#declineForm").addEventListener("submit",submitDecline); $("#closeDeclineBtn").onclick=()=>$("#declineDialog").close(); $("#cancelDeclineBtn").onclick=()=>$("#declineDialog").close();
+$("#declineForm").addEventListener("submit",submitDecline); $("#confirmDeclineBtn").onclick=(event)=>{ if (!$("#declineForm").checkValidity()) return; event.preventDefault(); void submitDecline(event); }; $("#closeDeclineBtn").onclick=()=>$("#declineDialog").close(); $("#cancelDeclineBtn").onclick=()=>$("#declineDialog").close();
 $("#proposalForm").addEventListener("submit",submitProposal); $("#closeProposalBtn").onclick=()=>$("#proposalDialog").close(); $("#cancelProposalBtn").onclick=()=>$("#proposalDialog").close();
 $("#loginForm").addEventListener("submit", requestMagicLink);
 $("#signOutBtn").onclick=async()=>{ if(localMode){localStorage.removeItem("swilcan-crm-preview");location.reload();return;}await supabaseClient.auth.signOut(); };
